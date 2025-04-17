@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Lookup / Fulfillment File</title>
+  <!-- Google Font: Poppins -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- CSV parser -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <!-- Excel parser (SheetJS) -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: 'Poppins', sans-serif; margin: 20px; }
+    h1, h2 { text-align: center; margin-bottom: 20px; }
+    .upload-row, .merge-row { display: flex; gap: 20px; justify-content: center; margin-bottom: 20px; }
+    .upload-card { flex: 1; max-width: 300px; background: #f5f5f5; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+    .controls-group { margin-bottom: 20px; }
+    .controls-group > label { display: block; text-align: center; margin-bottom: 10px; }
+    .section-box { background: #f5f5f5; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
+    .btn-group { display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; }
+    .button-list { display: grid; grid-auto-flow: column; gap: 5px; justify-content: center; }
+    .toggle-btn { padding: 5px 10px; border: 1px solid #B4C99C; background: #FCE7C8; cursor: pointer; border-radius: 4px; }
+    .toggle-btn.active { background: #007BFF; color: #fff; border-color: #007BFF; }
+    #add-columns-container { display: flex; justify-content: center; align-items: center; flex-wrap: wrap; gap: 10px; margin-bottom: 10px; }
+    #add-column-btn { display: block; margin: 0 auto 20px; }
+    select, input[type=text] { padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
+    button, #download-csv-btn, #download-excel-btn { font-weight: 600; border: none; background: #ED9B3B; color: #fff; border-radius: 4px; padding: 8px 12px; cursor: pointer; text-decoration: none; }
+    button:hover, #download-csv-btn:hover, #download-excel-btn:hover { background: #FAD96C; }
+    #download-csv-btn, #download-excel-btn { display: none; margin: 0 10px; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>Lookup / Fulfillment File</h1>
+  <div class="upload-row">
+    <div class="upload-card">
+      <label>Upload Base File<br><input type="file" id="file1" accept=".csv,.xls,.xlsx"></label>
+    </div>
+    <div class="upload-card">
+      <label>Upload Lookup File<br><input type="file" id="file2" accept=".csv,.xls,.xlsx"></label>
+    </div>
+  </div>
+  <div id="controls">
+    <h2 id="toggle-settings">Setup Merge ▼</h2>
+    <div id="settings-content">
+      <div class="section-box">
+        <div class="controls-group">
+          <label>Columns to keep:</label>
+          <div class="btn-group">
+            <button id="select-all-cols">Select All</button>
+            <button id="clear-all-cols">Clear All</button>
+          </div>
+          <div id="keep-cols-container" class="button-list"></div>
+        </div>
+        <div class="controls-group" style="display:flex; gap:20px; justify-content:center;">
+          <div><label>Key in File 1:<br><select id="key1"></select></label></div>
+          <div><label>Key in File 2:<br><select id="key2"></select></label></div>
+        </div>
+        <div class="controls-group">
+          <label>Value columns to fetch:</label>
+          <div class="btn-group">
+            <button id="select-all-values">Select All</button>
+            <button id="clear-all-values">Clear All</button>
+          </div>
+          <div id="value-cols-container" class="button-list"></div>
+        </div>
+        <div class="controls-group">
+          <label>Additional Columns:</label>
+          <div id="add-columns-container"></div>
+          <button id="add-column-btn">+ Add Column</button>
+        </div>
+      </div>
+    </div>
+    <div class="merge-row">
+      <button id="merge-btn">Merge and Show Result</button>
+      <a id="download-csv-btn" download="merged.csv">Download CSV</a>
+      <a id="download-excel-btn" download="merged.xlsx">Download Excel</a>
+    </div>
+  </div>
+  <div id="result"></div>
+  <script>
+    let data1 = [], data2 = [], headers1 = [], headers2 = [];
+    // File readers
+    function readCSV(file, cb) { Papa.parse(file, { header:true, skipEmptyLines:true, complete:r=>cb(r.data,r.meta.fields) }); }
+    function readExcel(file, cb) { const r=new FileReader(); r.onload=e=>{ const arr=new Uint8Array(e.target.result), wb=XLSX.read(arr,{type:'array'}), ws=wb.Sheets[wb.SheetNames[0]], json=XLSX.utils.sheet_to_json(ws,{defval:''}); cb(json, json.length?Object.keys(json[0]):[]);} ; r.readAsArrayBuffer(file);}    
+    function handleFile(id,setD,setH){ const f=document.getElementById(id).files[0]; if(!f)return; const ext=f.name.split('.').pop().toLowerCase(); if(ext==='csv') readCSV(f,(d,h)=>dataLoaded(d,h,setD,setH)); else readExcel(f,(d,h)=>dataLoaded(d,h,setD,setH)); }
+    function dataLoaded(d,h,setD,setH){ setD(d); setH(h); if(data1.length && data2.length) initUI(); }
+    document.getElementById('file1').addEventListener('change', ()=> handleFile('file1', d=>data1=d, h=>headers1=h));
+    document.getElementById('file2').addEventListener('change', ()=> handleFile('file2', d=>data2=d, h=>headers2=h));
+
+    function populateButtons(id, headers) {
+      const container = document.getElementById(id);
+      container.innerHTML = '';
+      headers.forEach(h => {
+        const b = document.createElement('button');
+        b.className = 'toggle-btn'; b.textContent = h; b.dataset.value = h;
+        b.addEventListener('click', () => b.classList.toggle('active'));
+        container.appendChild(b);
+      });
+    }
+
+    function fillSelect(id, headers) {
+      const sel = document.getElementById(id);
+      sel.innerHTML = '';
+      headers.forEach(h => {
+        const o = document.createElement('option'); o.value = h; o.textContent = h;
+        sel.appendChild(o);
+      });
+    }
+
+    const addCols = [];
+    function addColumnRow() {
+      const row = document.createElement('div');
+      row.className = 'column-row';
+      row.innerHTML = `
+        <input type="text" placeholder="Column name" class="col-name">
+        <select class="col-source">
+          <option value="file">From File</option>
+          <option value="location">From Location</option>
+          <option value="marketplace">From Marketplace</option>
+          <option value="concat">Concat</option>
+        </select>
+        <select class="col-file-select" style="display:none;">
+          <option value="file1">Base File</option>
+          <option value="file2">Lookup File</option>
+        </select>
+        <select class="col-key" style="display:none;"></select>
+        <select class="col-location" style="display:none;"><option>California Distribution Warehouse</option><option>Chicago Distribution Warehouse</option><option>Georgia Distribution Warehouse</option><option>New Jersey Distribution Warehouse</option><option>Usauto Dropship</option><option>Meyer Dropship</option><option>Turn14 Dropship</option></select>
+        <select class="col-marketplace" style="display:none;"><option>10 Amazon</option><option>11 eBay</option><option>12 Walmart</option><option>13 x-cart</option></select>
+        <select class="col-concat-file" style="display:none;"><option value="file1">Base File</option><option value="file2">Lookup File</option></select>
+        <select class="col-concat-key" style="display:none;"></select>
+        <input type="text" placeholder="Text to concat" class="col-concat-text" style="display:none;">
+        <button class="remove-col">✕</button>
+      `;
+      const fileSelect = row.querySelector('.col-file-select');
+      const keySel = row.querySelector('.col-key');
+      // populate key for initial file1
+      headers1.forEach(h => { const o = document.createElement('option'); o.value=h; o.textContent=h; keySel.appendChild(o); });
+      fileSelect.addEventListener('change', e => {
+        keySel.innerHTML='';
+        const opts = e.target.value === 'file1' ? headers1 : headers2;
+        opts.forEach(h => { const o = document.createElement('option'); o.value=h; o.textContent=h; keySel.appendChild(o); });
+      });
+      const concatFileSel = row.querySelector('.col-concat-file');
+      const concatKeySel = row.querySelector('.col-concat-key');
+      concatFileSel.addEventListener('change', e => {
+        concatKeySel.innerHTML='';
+        const opts = e.target.value==='file1' ? headers1 : headers2;
+        opts.forEach(h => { const o = document.createElement('option'); o.value=h; o.textContent=h; concatKeySel.appendChild(o); });
+      });
+      row.querySelector('.col-source').addEventListener('change', e => {
+        const src = e.target.value;
+        row.querySelector('.col-file-select').style.display = src==='file'?'inline-block':'none';
+        row.querySelector('.col-key').style.display = src==='file'?'inline-block':'none';
+        row.querySelector('.col-location').style.display = src==='location'?'inline-block':'none';
+        row.querySelector('.col-marketplace').style.display = src==='marketplace'?'inline-block':'none';
+        row.querySelector('.col-concat-file').style.display = src==='concat'?'inline-block':'none';
+        row.querySelector('.col-concat-key').style.display = src==='concat'?'inline-block':'none';
+        row.querySelector('.col-concat-text').style.display = src==='concat'?'inline-block':'none';
+      });
+      row.querySelector('.remove-col').addEventListener('click', () => {
+        row.remove(); const i = addCols.indexOf(row); if(i>-1) addCols.splice(i,1);
+      });
+      document.getElementById('add-columns-container').appendChild(row);
+      addCols.push(row);
+    }
+
+    function initUI() {
+      document.getElementById('controls').style.display = 'block';
+      populateButtons('keep-cols-container', headers1);
+      populateButtons('value-cols-container', headers2);
+      fillSelect('key1', headers1);
+      fillSelect('key2', headers2);
+    }
+
+    document.getElementById('add-column-btn').addEventListener('click', addColumnRow);
+    document.getElementById('select-all-cols').addEventListener('click', ()=> document.querySelectorAll('#keep-cols-container .toggle-btn').forEach(b=>b.classList.add('active')));
+    document.getElementById('clear-all-cols').addEventListener('click', ()=> document.querySelectorAll('#keep-cols-container .toggle-btn').forEach(b=>b.classList.remove('active')));
+    document.getElementById('select-all-values').addEventListener('click', ()=> document.querySelectorAll('#value-cols-container .toggle-btn').forEach(b=>b.classList.add('active')));
+    document.getElementById('clear-all-values').addEventListener('click', ()=> document.querySelectorAll('#value-cols-container .toggle-btn').forEach(b=>b.classList.remove('active')));
+    document.getElementById('toggle-settings').addEventListener('click', ()=>{
+      const sc = document.getElementById('settings-content');
+      const t = document.getElementById('toggle-settings');
+      if(sc.style.display==='none'){ sc.style.display='block'; t.textContent='Setup Merge ▼'; }
+      else { sc.style.display='none'; t.textContent='Setup Merge ►'; }
+    });
+    document.getElementById('merge-btn').addEventListener('click', ()=>{
+      const keepCols = Array.from(document.querySelectorAll('#keep-cols-container .toggle-btn.active')).map(b=>b.dataset.value);
+      const valueCols = Array.from(document.querySelectorAll('#value-cols-container .toggle-btn.active')).map(b=>b.dataset.value);
+      const key1 = document.getElementById('key1').value;
+      const key2 = document.getElementById('key2').value;
+      const configs = addCols.map(row=>({
+        name: row.querySelector('.col-name').value.trim(),
+        src: row.querySelector('.col-source').value,
+        file: row.querySelector('.col-file-select').value,
+        key: row.querySelector('.col-key').value,
+        loc: row.querySelector('.col-location').value,
+        mp: row.querySelector('.col-marketplace').value,
+        concatText: row.querySelector('.col-concat-text').value,
+        concatFile: row.querySelector('.col-concat-file').value,
+        concatKey: row.querySelector('.col-concat-key').value
+      }));
+      const lookup = {};
+      data2.forEach(r=>{ const k=r[key2]; if(!lookup[k]) lookup[k]=[]; lookup[k].push(r); });
+      Object.keys(lookup).forEach(k=>{ const seen=new Set(), uniq=[]; lookup[k].forEach(r=>{ const ks=JSON.stringify(valueCols.map(c=>r[c]||'')); if(!seen.has(ks)){ seen.add(ks); uniq.push(r);} }); lookup[k]=uniq; });
+      const merged = [];
+      data1.forEach(r1=>{
+        const matches = lookup[r1[key1]]||[];
+        if(matches.length) matches.forEach(r2=>{
+          const row = {};
+          keepCols.forEach(c=>row[c]=r1[c]);
+          configs.forEach(cfg=>{
+            if(cfg.src==='file'){
+              const val = cfg.file==='file1'? r1[cfg.key] : r2[cfg.key];
+              row[cfg.name] = val || '';
+            }
+            if(cfg.src==='location') row[cfg.name]=cfg.loc;
+            if(cfg.src==='marketplace') row[cfg.name]=cfg.mp;
+            if(cfg.src==='concat'){
+              const val = cfg.concatFile==='file1'?r1[cfg.concatKey]:r2[cfg.concatKey];
+              row[cfg.name]=(cfg.concatText||'')+(val||'');
+            }
+          });
+          valueCols.forEach(c=>row[c]=r2[c]||'');
+          merged.push(row);
+        }); else {
+          const row = {};
+          keepCols.forEach(c=>row[c]=r1[c]||'');
+          configs.forEach(cfg=>{
+            if(cfg.src==='file'){
+              const val = cfg.file==='file1'? r1[cfg.key] : '';
+              row[cfg.name] = val || '';
+            }
+            if(cfg.src==='location') row[cfg.name]=cfg.loc;
+            if(cfg.src==='marketplace') row[cfg.name]=cfg.mp;
+            if(cfg.src==='concat'){
+              const val = cfg.concatFile==='file1'?r1[cfg.concatKey]:'';
+              row[cfg.name]=(cfg.concatText||'')+(val||'');
+            }
+          });
+          valueCols.forEach(c=>row[c]='');
+          merged.push(row);
+        }
+      });
+      const res = document.getElementById('result'); res.innerHTML=''; if(!merged.length) return res.textContent='No data to display.';
+      const table = document.createElement('table'), hdr=document.createElement('tr');
+      const cols = [...keepCols, ...configs.map(c=>c.name), ...valueCols];
+      cols.forEach(h=>{ const th=document.createElement('th'); th.textContent=h; hdr.appendChild(th); }); table.appendChild(hdr);
+      merged.forEach(r=>{ const tr=document.createElement('tr'); cols.forEach(h=>{ const td=document.createElement('td'); td.textContent=r[h]||''; tr.appendChild(td); }); table.appendChild(tr); });
+      res.appendChild(table);
+      const csv = Papa.unparse(merged); setDownloadCSV(csv); setDownloadExcel(merged);
+    });
+    function setDownloadCSV(csv){ const b=new Blob([csv],{type:'text/csv'}), u=URL.createObjectURL(b), d=document.getElementById('download-csv-btn'); d.href=u; d.style.display='inline-block'; }
+    function setDownloadExcel(data){ const wb=XLSX.utils.book_new(), ws=XLSX.utils.json_to_sheet(data); XLSX.utils.book_append_sheet(wb,ws,'Sheet1'); const out=XLSX.write(wb,{bookType:'xlsx',type:'array'}), b=new Blob([out],{type:'application/octet-stream'}), u=URL.createObjectURL(b), d=document.getElementById('download-excel-btn'); d.href=u; d.style.display='inline-block'; }
+  </script>
+</body>
+</html>
