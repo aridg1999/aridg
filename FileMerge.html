@@ -20,21 +20,10 @@
     .controls-group > label { display: block; text-align: center; margin-bottom: 10px; }
     .section-box { background: #f5f5f5; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); margin-bottom: 20px; }
     .btn-group { display: flex; gap: 10px; justify-content: center; margin-bottom: 10px; }
-    .button-list { 
-      display: flex;
-      flex-wrap: wrap;
-      gap: 5px;
-      justify-content: center;
-    }
+    .button-list { display: flex; flex-wrap: wrap; gap: 5px; justify-content: center; }
     .toggle-btn { padding: 5px 10px; border: 1px solid #B4C99C; background: #FCE7C8; cursor: pointer; border-radius: 4px; }
     .toggle-btn.active { background: #007BFF; color: #fff; border-color: #007BFF; }
-    #add-columns-container {
-      display: flex;
-      flex-direction: column;
-      align-items: center;
-      gap: 10px;
-      margin-bottom: 10px;
-    }
+    #add-columns-container { display: flex; flex-direction: column; align-items: center; gap: 10px; margin-bottom: 10px; }
     #add-column-btn { display: block; margin: 0 auto 20px; }
     select, input[type=text] { padding: 5px; border: 1px solid #ccc; border-radius: 4px; }
     button, #download-csv-btn, #download-excel-btn { font-weight: 600; border: none; background: #ED9B3B; color: #fff; border-radius: 4px; padding: 8px 12px; cursor: pointer; text-decoration: none; }
@@ -94,24 +83,32 @@
   <div id="result"></div>
   <script>
     let data1 = [], data2 = [], headers1 = [], headers2 = [];
-    function readCSV(file, cb) { Papa.parse(file, { header:true, skipEmptyLines:true, complete:r => cb(r.data, r.meta.fields) }); }
-    function readExcel(file, cb) { const r = new FileReader(); r.onload = e => { const arr = new Uint8Array(e.target.result);
-      const wb = XLSX.read(arr, { type:'array' });
-      const ws = wb.Sheets[wb.SheetNames[0]];
-      const j = XLSX.utils.sheet_to_json(ws, { defval:'' });
-      cb(j, j.length ? Object.keys(j[0]) : []);
-    }; r.readAsArrayBuffer(file); }
+
+    function readCSV(file, cb) {
+      Papa.parse(file, { header: true, skipEmptyLines: true, complete: r => cb(r.data, r.meta.fields) });
+    }
+
+    function readExcel(file, cb) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const arr = new Uint8Array(e.target.result);
+        const wb = XLSX.read(arr, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        cb(json, json.length ? Object.keys(json[0]) : []);
+      };
+      reader.readAsArrayBuffer(file);
+    }
 
     function handleFile(id, setD, setH) {
-      const f = document.getElementById(id).files[0]; if (!f) return;
-      const ext = f.name.split('.').pop().toLowerCase();
-      if (ext === 'csv') readCSV(f, (d, h) => dataLoaded(d, h, setD, setH));
-      else readExcel(f, (d, h) => dataLoaded(d, h, setD, setH));
+      const file = document.getElementById(id).files[0]; if (!file) return;
+      const ext = file.name.split('.').pop().toLowerCase();
+      if (ext === 'csv') readCSV(file, (d,h) => dataLoaded(d, h, setD, setH));
+      else readExcel(file, (d,h) => dataLoaded(d, h, setD, setH));
     }
 
     function dataLoaded(d, h, setD, setH) {
-      setD(d);
-      setH(h);
+      setD(d); setH(h);
       if (data1.length && data2.length) initUI();
     }
 
@@ -119,32 +116,29 @@
     document.getElementById('file2').addEventListener('change', () => handleFile('file2', d => data2 = d, h => headers2 = h));
 
     function populateButtons(id, headers) {
-      const container = document.getElementById(id);
-      container.innerHTML = '';
+      const container = document.getElementById(id); container.innerHTML = '';
       headers.forEach(h => {
-        const b = document.createElement('button');
-        b.className = 'toggle-btn';
-        b.textContent = h;
-        b.dataset.value = h;
-        b.addEventListener('click', () => b.classList.toggle('active'));
-        container.appendChild(b);
+        const btn = document.createElement('button'); btn.className = 'toggle-btn'; btn.textContent = h; btn.dataset.value = h;
+        btn.addEventListener('click', () => btn.classList.toggle('active')); container.appendChild(btn);
       });
     }
 
     function fillSelect(id, headers) {
       const sel = document.getElementById(id);
+      const prev = sel.value;
       sel.innerHTML = '';
       headers.forEach(h => {
-        const o = document.createElement('option');
-        o.value = h;
-        o.textContent = h;
-        sel.appendChild(o);
+        const opt = document.createElement('option'); opt.value = h; opt.textContent = h;
+        sel.appendChild(opt);
       });
+      if (prev && headers.includes(prev)) {
+        sel.value = prev;
+      }
     }
 
     const addCols = [];
     function addColumnRow() {
-      // ... (existing addColumnRow implementation unchanged)
+      // ... existing implementation
     }
 
     function initUI() {
@@ -156,19 +150,25 @@
     }
 
     document.getElementById('add-column-btn').addEventListener('click', addColumnRow);
-    document.getElementById('select-all-cols').addEventListener('click', () => document.querySelectorAll('#keep-cols-container .toggle-btn').forEach(b => b.classList.add('active')));
-    document.getElementById('clear-all-cols').addEventListener('click', () => document.querySelectorAll('#keep-cols-container .toggle-btn').forEach(b => b.classList.remove('active')));
-    document.getElementById('select-all-values').addEventListener('click', () => document.querySelectorAll('#value-cols-container .toggle-btn').forEach(b => b.classList.add('active')));
-    document.getElementById('clear-all-values').addEventListener('click', () => document.querySelectorAll('#value-cols-container .toggle-btn').forEach(b => b.classList.remove('active')));
+    document.getElementById('select-all-cols').addEventListener('click', () =>
+      document.querySelectorAll('#keep-cols-container .toggle-btn').forEach(b => b.classList.add('active'))
+    );
+    document.getElementById('clear-all-cols').addEventListener('click', () =>
+      document.querySelectorAll('#keep-cols-container .toggle-btn').forEach(b => b.classList.remove('active'))
+    );
+    document.getElementById('select-all-values').addEventListener('click', () =>
+      document.querySelectorAll('#value-cols-container .toggle-btn').forEach(b => b.classList.add('active'))
+    );
+    document.getElementById('clear-all-values').addEventListener('click', () =>
+      document.querySelectorAll('#value-cols-container .toggle-btn').forEach(b => b.classList.remove('active'))
+    );
     document.getElementById('toggle-settings').addEventListener('click', () => {
-      const sc = document.getElementById('settings-content');
-      const t = document.getElementById('toggle-settings');
-      if (sc.style.display === 'none') {
-        sc.style.display = 'block';
-        t.textContent = 'Setup Merge ▼';
+      const content = document.getElementById('settings-content');
+      const toggle = document.getElementById('toggle-settings');
+      if (content.style.display === 'none') {
+        content.style.display = 'block'; toggle.textContent = 'Setup Merge ▼';
       } else {
-        sc.style.display = 'none';
-        t.textContent = 'Setup Merge ►';
+        content.style.display = 'none'; toggle.textContent = 'Setup Merge ►';
       }
     });
   </script>
