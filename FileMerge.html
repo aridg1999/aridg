@@ -101,14 +101,16 @@
     }
 
     function handleFile(id, setD, setH) {
-      const file = document.getElementById(id).files[0]; if (!file) return;
-      const ext = file.name.split('.').pop().toLowerCase();
-      if (ext === 'csv') readCSV(file, (d,h) => dataLoaded(d, h, setD, setH));
-      else readExcel(file, (d,h) => dataLoaded(d, h, setD, setH));
+      const f = document.getElementById(id).files[0];
+      if (!f) return;
+      const ext = f.name.split('.').pop().toLowerCase();
+      if (ext === 'csv') readCSV(f, (d, h) => dataLoaded(d, h, setD, setH));
+      else readExcel(f, (d, h) => dataLoaded(d, h, setD, setH));
     }
 
     function dataLoaded(d, h, setD, setH) {
-      setD(d); setH(h);
+      setD(d);
+      setH(h);
       if (data1.length && data2.length) initUI();
     }
 
@@ -116,10 +118,15 @@
     document.getElementById('file2').addEventListener('change', () => handleFile('file2', d => data2 = d, h => headers2 = h));
 
     function populateButtons(id, headers) {
-      const container = document.getElementById(id); container.innerHTML = '';
+      const container = document.getElementById(id);
+      container.innerHTML = '';
       headers.forEach(h => {
-        const btn = document.createElement('button'); btn.className = 'toggle-btn'; btn.textContent = h; btn.dataset.value = h;
-        btn.addEventListener('click', () => btn.classList.toggle('active')); container.appendChild(btn);
+        const btn = document.createElement('button');
+        btn.className = 'toggle-btn';
+        btn.textContent = h;
+        btn.dataset.value = h;
+        btn.addEventListener('click', () => btn.classList.toggle('active'));
+        container.appendChild(btn);
       });
     }
 
@@ -131,14 +138,60 @@
         const opt = document.createElement('option'); opt.value = h; opt.textContent = h;
         sel.appendChild(opt);
       });
-      if (prev && headers.includes(prev)) {
-        sel.value = prev;
-      }
+      if (prev && headers.includes(prev)) sel.value = prev;
     }
 
     const addCols = [];
     function addColumnRow() {
-      // ... existing implementation
+      const row = document.createElement('div'); row.className = 'column-row';
+      row.innerHTML = `
+        <input type="text" placeholder="Column name" class="col-name">
+        <select class="col-source">
+          <option value="file">From File</option>
+          <option value="location">From Location</option>
+          <option value="marketplace">From Marketplace</option>
+          <option value="concat">Concat</option>
+        </select>
+        <select class="col-file-select" style="display:none;"><option value="file1">Base File</option><option value="file2">Lookup File</option></select>
+        <select class="col-key" style="display:none;"></select>
+        <select class="col-location" style="display:none;"><option>California Distribution Warehouse</option><option>Chicago Distribution Warehouse</option><option>Georgia Distribution Warehouse</option><option>New Jersey Distribution Warehouse</option><option>Usauto Dropship</option><option>Meyer Dropship</option><option>Turn14 Dropship</option></select>
+        <select class="col-marketplace" style="display:none;"><option>10 Amazon</option><option>11 eBay</option><option>12 Walmart</option><option>13 x-cart</option></select>
+        <select class="col-concat-file" style="display:none;"><option value="file1">Base File</option><option value="file2">Lookup File</option></select>
+        <select class="col-concat-key" style="display:none;"></select>
+        <input type="text" placeholder="Text to concat" class="col-concat-text" style="display:none;">
+        <button class="remove-col">✕</button>
+      `;
+      const srcSel = row.querySelector('.col-source');
+      const fileSel = row.querySelector('.col-file-select');
+      const keySel = row.querySelector('.col-key');
+      const concatFileSel = row.querySelector('.col-concat-file');
+      const concatKeySel = row.querySelector('.col-concat-key');
+
+      fileSel.addEventListener('change', e => {
+        keySel.innerHTML = '';
+        const opts = e.target.value === 'file1' ? headers1 : headers2;
+        opts.forEach(h => { const o = document.createElement('option'); o.value = h; o.textContent = h; keySel.appendChild(o); });
+      });
+      concatFileSel.addEventListener('change', e => {
+        concatKeySel.innerHTML = '';
+        const opts = e.target.value === 'file1' ? headers1 : headers2;
+        opts.forEach(h => { const o = document.createElement('option'); o.value = h; o.textContent = h; concatKeySel.appendChild(o); });
+      });
+      srcSel.addEventListener('change', e => {
+        row.querySelector('.col-file-select').style.display = e.target.value === 'file' ? 'inline-block' : 'none';
+        row.querySelector('.col-key').style.display = e.target.value === 'file' ? 'inline-block' : 'none';
+        row.querySelector('.col-location').style.display = e.target.value === 'location' ? 'inline-block' : 'none';
+        row.querySelector('.col-marketplace').style.display = e.target.value === 'marketplace' ? 'inline-block' : 'none';
+        row.querySelector('.col-concat-file').style.display = e.target.value === 'concat' ? 'inline-block' : 'none';
+        row.querySelector('.col-concat-key').style.display = e.target.value === 'concat' ? 'inline-block' : 'none';
+        row.querySelector('.col-concat-text').style.display = e.target.value === 'concat' ? 'inline-block' : 'none';
+        if (e.target.value === 'file') fileSel.dispatchEvent(new Event('change'));
+        if (e.target.value === 'concat') concatFileSel.dispatchEvent(new Event('change'));
+      });
+      srcSel.dispatchEvent(new Event('change'));
+      row.querySelector('.remove-col').addEventListener('click', () => { row.remove(); const i = addCols.indexOf(row); if (i > -1) addCols.splice(i, 1); });
+      document.getElementById('add-columns-container').appendChild(row);
+      addCols.push(row);
     }
 
     function initUI() {
@@ -150,26 +203,104 @@
     }
 
     document.getElementById('add-column-btn').addEventListener('click', addColumnRow);
-    document.getElementById('select-all-cols').addEventListener('click', () =>
-      document.querySelectorAll('#keep-cols-container .toggle-btn').forEach(b => b.classList.add('active'))
-    );
-    document.getElementById('clear-all-cols').addEventListener('click', () =>
-      document.querySelectorAll('#keep-cols-container .toggle-btn').forEach(b => b.classList.remove('active'))
-    );
-    document.getElementById('select-all-values').addEventListener('click', () =>
-      document.querySelectorAll('#value-cols-container .toggle-btn').forEach(b => b.classList.add('active'))
-    );
-    document.getElementById('clear-all-values').addEventListener('click', () =>
-      document.querySelectorAll('#value-cols-container .toggle-btn').forEach(b => b.classList.remove('active'))
-    );
+    document.getElementById('select-all-cols').addEventListener('click', () => document.querySelectorAll('#keep-cols-container .toggle-btn').forEach(b => b.classList.add('active')));
+    document.getElementById('clear-all-cols').addEventListener('click', () => document.querySelectorAll('#keep-cols-container .toggle-btn').forEach(b => b.classList.remove('active')));
+    document.getElementById('select-all-values').addEventListener('click', () => document.querySelectorAll('#value-cols-container .toggle-btn').forEach(b => b.classList.add('active')));
+    document.getElementById('clear-all-values').addEventListener('click', () => document.querySelectorAll('#value-cols-container .toggle-btn').forEach(b => b.classList.remove('active')));
     document.getElementById('toggle-settings').addEventListener('click', () => {
-      const content = document.getElementById('settings-content');
-      const toggle = document.getElementById('toggle-settings');
-      if (content.style.display === 'none') {
-        content.style.display = 'block'; toggle.textContent = 'Setup Merge ▼';
-      } else {
-        content.style.display = 'none'; toggle.textContent = 'Setup Merge ►';
-      }
+      const sc = document.getElementById('settings-content');
+      const t = document.getElementById('toggle-settings');
+      if (sc.style.display === 'none') { sc.style.display = 'block'; t.textContent = 'Setup Merge ▼'; }
+      else { sc.style.display = 'none'; t.textContent = 'Setup Merge ►'; }
+    });
+
+    document.getElementById('merge-btn').addEventListener('click', () => {
+      const keepCols = Array.from(document.querySelectorAll('#keep-cols-container .toggle-btn.active')).map(b => b.dataset.value);
+      const valueCols = Array.from(document.querySelectorAll('#value-cols-container .toggle-btn.active')).map(b => b.dataset.value);
+      const key1 = document.getElementById('key1').value;
+      const key2 = document.getElementById('key2').value;
+      const configs = addCols.map(row => ({
+        name: row.querySelector('.col-name').value.trim(),
+        src: row.querySelector('.col-source').value,
+        file: row.querySelector('.col-file-select').value,
+        key: row.querySelector('.col-key').value,
+        loc: row.querySelector('.col-location').value,
+        mp: row.querySelector('.col-marketplace').value,
+        concatText: row.querySelector('.col-concat-text').value,
+        concatFile: row.querySelector('.col-concat-file').value,
+        concatKey: row.querySelector('.col-concat-key').value
+      }));
+      const lookup = {};
+      data2.forEach(r => {
+        const k = r[key2];
+        if (!lookup[k]) lookup[k] = [];
+        lookup[k].push(r);
+      });
+      Object.keys(lookup).forEach(k => {
+        const seen = new Set();
+        lookup[k] = lookup[k].filter(r => {
+          const ks = JSON.stringify(valueCols.map(c => r[c]||''));
+          if (!seen.has(ks)) { seen.add(ks); return true; }
+          return false;
+        });
+      });
+      const merged = [];
+      data1.forEach(r1 => {
+        const matches = lookup[r1[key1]] || [];
+        if (matches.length) {
+          matches.forEach(r2 => {
+            const row = {};
+            keepCols.forEach(c => row[c] = r1[c]);
+            configs.forEach(cfg => {
+              if (cfg.src === 'file') {
+                row[cfg.name] = (cfg.file === 'file1' ? r1[cfg.key] : r2[cfg.key]) || '';
+              } else if (cfg.src === 'location') row[cfg.name] = cfg.loc;
+              else if (cfg.src === 'marketplace') row[cfg.name] = cfg.mp;
+              else if (cfg.src === 'concat') {
+                const val = (cfg.concatFile === 'file1' ? r1[cfg.concatKey] : r2[cfg.concatKey]) || '';
+                row[cfg.name] = (cfg.concatText||'') + val;
+              }
+            });
+            valueCols.forEach(c => row[c] = r2[c] || '');
+            merged.push(row);
+          });
+        } else {
+          const row = {};
+          keepCols.forEach(c => row[c] = r1[c] || '');
+          configs.forEach(cfg => {
+            if (cfg.src === 'file') row[cfg.name] = (r1[cfg.key]||'');
+            else if (cfg.src === 'location') row[cfg.name] = cfg.loc;
+            else if (cfg.src === 'marketplace') row[cfg.name] = cfg.mp;
+            else if (cfg.src === 'concat') row[cfg.name] = (cfg.concatText||'') + (r1[cfg.concatenateKey]||'');
+          });
+          valueCols.forEach(c => row[c] = '');
+          merged.push(row);
+        }
+      });
+      const res = document.getElementById('result'); res.innerHTML = '';
+      if (!merged.length) return res.textContent = 'No data to display.';
+      const table = document.createElement('table');
+      const hdr = document.createElement('tr');
+      const cols = [...keepCols, ...configs.map(c=>c.name), ...valueCols];
+      cols.forEach(h => { const th = document.createElement('th'); th.textContent = h; hdr.appendChild(th); });
+      table.appendChild(hdr);
+      merged.forEach(r => {
+        const tr = document.createElement('tr');
+        cols.forEach(h => { const td = document.createElement('td'); td.textContent = r[h]||''; tr.appendChild(td); });
+        table.appendChild(tr);
+      });
+      res.appendChild(table);
+      const csv = Papa.unparse(merged);
+      const b = new Blob([csv], {type:'text/csv'});
+      const u = URL.createObjectURL(b);
+      const dc = document.getElementById('download-csv-btn'); dc.href = u; dc.style.display = 'inline-block';
+      const wb = XLSX.utils.book_new();
+      const ws2 = XLSX.utils.json_to_sheet(merged);
+      XLSX.utils.book_append_sheet(wb, ws2, 'Sheet1');
+      const out = XLSX.write(wb, {bookType:'xlsx', type:'array'});
+      const bx = new Blob([out], {type:'application/octet-stream'});
+      const ux = URL.createObjectURL(bx);
+      const de = document.getElementById('download-excel-btn'); de.href = ux; de.style.display = 'inline-block';
     });
   </script>
 </body>
