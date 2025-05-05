@@ -1,0 +1,215 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+  <title>Staff Feedback Form</title>
+  <!-- Google Font -->
+  <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-color: #eef1f5;
+      --card-bg: #ffffff;
+      --primary-color: #0066cc;
+      --text-color: #333333;
+      --label-color: #444;
+      --border-color: #d1d5db;
+      --input-bg: #f7fafc;
+      --shadow: rgba(0, 0, 0, 0.05);
+    }
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    body {
+      font-family: 'Roboto', sans-serif;
+      background-color: var(--bg-color);
+      color: var(--text-color);
+      padding: 2rem;
+    }
+    .feedback-form {
+      max-width: 700px;
+      margin: 0 auto;
+      background-color: var(--card-bg);
+      border-radius: 12px;
+      padding: 2rem;
+      box-shadow: 0 4px 12px var(--shadow);
+    }
+    .feedback-form h2 {
+      font-size: 1.8rem;
+      font-weight: 700;
+      margin-bottom: 1rem;
+      border-bottom: 2px solid var(--border-color);
+      padding-bottom: 0.5rem;
+    }
+    label {
+      display: block;
+      font-weight: 500;
+      color: var(--label-color);
+      margin-top: 1rem;
+      margin-bottom: 0.25rem;
+    }
+    .description {
+      font-size: 0.9rem;
+      color: #666;
+      margin-bottom: 0.5rem;
+    }
+    select, textarea {
+      width: 100%;
+      padding: 0.6rem 0.8rem;
+      font-size: 1rem;
+      background-color: var(--input-bg);
+      border: 1px solid var(--border-color);
+      border-radius: 6px;
+      transition: border-color 0.2s;
+    }
+    select:focus, textarea:focus {
+      outline: none;
+      border-color: var(--primary-color);
+      background-color: #ffffff;
+    }
+    .criteria {
+      margin-top: 2rem;
+    }
+    h3 {
+      font-size: 1.3rem;
+      font-weight: 600;
+      margin-bottom: 0.5rem;
+      color: var(--primary-color);
+    }
+    .submit-btn {
+      display: inline-block;
+      margin-top: 1.5rem;
+      background: var(--primary-color);
+      color: #ffffff;
+      font-size: 1rem;
+      font-weight: 500;
+      padding: 0.8rem 2rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      transition: background 0.2s, transform 0.1s;
+    }
+    .submit-btn:hover {
+      background: #005bb5;
+      transform: translateY(-1px);
+    }
+    .submit-btn:active {
+      transform: translateY(1px);
+    }
+    @media (max-width: 600px) {
+      .feedback-form {
+        padding: 1rem;
+      }
+      h2 { font-size: 1.5rem; }
+      h3 { font-size: 1.1rem; }
+    }
+  </style>
+</head>
+<body>
+  <form class="feedback-form" action="https://script.google.com/macros/s/AKfycbyy5HNs_bkzXrJw6uLIZpHrZD2JLVPqILvORgnHwcvw7OFimcVRuZXZm3ZZq_NN0R0gdA/exec" method="post">
+    <h2>Feedback Form</h2>
+
+    <label for="employee">Select Employee</label>
+    <select id="employee" name="employee" required>
+      <optgroup label="Managers">
+        <option value="Ariane De Guzman">Ariane De Guzman</option>
+        <option value="Mariel Zipagan">Mariel Zipagan</option>
+        <option value="CJ Paet">CJ Paet</option>
+      </optgroup>
+      <optgroup label="Assistant Managers">
+        <option value="Mary Guray">Mary Guray</option>
+        <option value="Shari Torres">Shari Torres</option>
+      </optgroup>
+    </select>
+
+    <div class="criteria">
+      <h3>Work Quality</h3>
+      <label>Produces accurate and detail-oriented work</label>
+      <span class="description">Delivers work with minimal errors, demonstrating strong attention to detail.</span>
+      <select name="accuracy">
+        <option>5 – Excellent</option>
+        <option>4 – Good</option>
+        <option>3 – Satisfactory</option>
+        <option>2 – Needs Improvement</option>
+        <option>1 – Unsatisfactory</option>
+      </select>
+
+      <label>Maintains consistent work quality</label>
+      <span class="description">Maintains high standards across tasks, ensuring uniform quality.</span>
+      <select name="consistency">
+        <option>5 – Excellent</option>
+        <option>4 – Good</option>
+        <option>3 – Satisfactory</option>
+        <option>2 – Needs Improvement</option>
+        <option>1 – Unsatisfactory</option>
+      </select>
+
+      <label>Demonstrates effective problem-solving</label>
+      <span class="description">Identifies issues and implements innovative, practical solutions.</span>
+      <select name="problemSolving">
+        <option>5 – Excellent</option>
+        <option>4 – Good</option>
+        <option>3 – Satisfactory</option>
+        <option>2 – Needs Improvement</option>
+        <option>1 – Unsatisfactory</option>
+      </select>
+    </div>
+
+    <div class="criteria">
+      <h3>Communication &amp; Teamwork</h3>
+      <label>Communicates clearly and professionally</label>
+      <span class="description">Conveys information effectively in both verbal and written formats.</span>
+      <select name="communication">
+        <option>5 – Excellent</option>
+        <option>4 – Good</option>
+        <option>3 – Satisfactory</option>
+        <option>2 – Needs Improvement</option>
+        <option>1 – Unsatisfactory</option>
+      </select>
+
+      <label>Listens actively and collaborates well</label>
+      <span class="description">Engages with others, respects input, and works cooperatively in teams.</span>
+      <select name="collaboration">
+        <option>5 – Excellent</option>
+        <option>4 – Good</option>
+        <option>3 – Satisfactory</option>
+        <option>2 – Needs Improvement</option>
+        <option>1 – Unsatisfactory</option>
+      </select>
+    </div>
+
+    <div class="criteria">
+      <h3>Responsibility &amp; Growth</h3>
+      <label>Shows reliability and ownership</label>
+      <span class="description">Consistently meets commitments and takes responsibility for outcomes.</span>
+      <select name="ownership">
+        <option>5 – Excellent</option>
+        <option>4 – Good</option>
+        <option>3 – Satisfactory</option>
+        <option>2 – Needs Improvement</option>
+        <option>1 – Unsatisfactory</option>
+      </select>
+
+      <label>Open to feedback and learning</label>
+      <span class="description">Accepts constructive criticism and seeks opportunities for improvement.</span>
+      <select name="growth">
+        <option>5 – Excellent</option>
+        <option>4 – Good</option>
+        <option>3 – Satisfactory</option>
+        <option>2 – Needs Improvement</option>
+        <option>1 – Unsatisfactory</option>
+      </select>
+    </div>
+
+    <div class="criteria">
+      <h3>Additional Comments</h3>
+      <label for="comments">Notes or feedback</label>
+      <textarea id="comments" name="comments" rows="4" placeholder="Add any notes or feedback here..."></textarea>
+    </div>
+
+    <button type="submit" class="submit-btn">Submit Feedback</button>
+  </form>
+</body>
+</html>
