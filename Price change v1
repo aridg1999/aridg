@@ -27,6 +27,7 @@
     <a data-target='calculator' onclick='toggleSection(this.dataset.target, this)'>Price Difference Calculator</a>
   </div>
 
+  <!-- Supplier Section -->
   <div id='supplier' class='section'>
     <h2>Supplier Price List Update</h2>
     <form>
@@ -39,36 +40,38 @@
           </tr>
         </thead>
         <tbody>
-          <tr><td class='supplier-cell'><input type='checkbox'> Meyer</td><td><input type='text' class='date-input'></td><td><input type='text' class='date-input'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> Turn14</td><td><input type='text' class='date-input'></td><td><input type='text' class='date-input'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> Tonsa</td><td><input type='text' class='date-input'></td><td><input type='text' class='date-input'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> USAUTO KVDS 12</td><td><input type='text' class='date-input'></td><td><input type='text' class='date-input'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> USAUTO KV 11</td><td><input type='text' class='date-input'></td><td><input type='text' class='date-input'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> Depo</td><td><input type='text' class='date-input'></td><td><input type='text' class='date-input'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> Eagle</td><td><input type='text' class='date-input'></td><td><input type='text' class='date-input'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> TYC</td><td><input type='text' class='date-input'></td><td><input type='text' class='date-input'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> K-Source</td><td><input type='text' class='date-input'></td><td><input type='text' class='date-input'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> LKQ</td><td><input type='text' class='date-input'></td><td><input type='text' class='date-input'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> KSI</td><td><input type='text' class='date-input'></td><td><input type='text' class='date-input'></td></tr>
+          <tr><td class='supplier-cell'><input type='checkbox'> Meyer</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
+          <tr><td class='supplier-cell'><input type='checkbox'> Turn14</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
+          <tr><td class='supplier-cell'><input type='checkbox'> Tonsa</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
+          <tr><td class='supplier-cell'><input type='checkbox'> USAUTO KVDS 12</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
+          <tr><td class='supplier-cell'><input type='checkbox'> USAUTO KV 11</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
+          <tr><td class='supplier-cell'><input type='checkbox'> Depo</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
+          <tr><td class='supplier-cell'><input type='checkbox'> Eagle</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
+          <tr><td class='supplier-cell'><input type='checkbox'> TYC</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
+          <tr><td class='supplier-cell'><input type='checkbox'> K-Source</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
+          <tr><td class='supplier-cell'><input type='checkbox'> LKQ</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
+          <tr><td class='supplier-cell'><input type='checkbox'> KSI</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
         </tbody>
       </table>
     </form>
   </div>
 
+  <!-- Calculator Section -->
   <div id='calculator' class='section'>
     <h2>Price Difference Calculator</h2>
     <div>
-      <input type='file' id='file1' class='file-input' accept='.csv, .xlsx'>
-      <input type='file' id='file2' class='file-input' accept='.csv, .xlsx'>
+      <input type='file' id='file1' accept='.csv, .xlsx'>
+      <input type='file' id='file2' accept='.csv, .xlsx'>
     </div>
     <div id='header-selects' style='display:none; margin-top:1rem;'>
       <label>Key Column: <select id='key'></select></label>
       <label>Price Column: <select id='price'></select></label>
       <button type='button' onclick='computeDifference()'>Compute Difference</button>
     </div>
-    <div id='download-controls' style='display:none;'>
+    <div id='download-controls' style='display:none; margin-top: 1rem;'>
       <button id='btn-csv'>Download CSV</button>
       <button id='btn-xlsx'>Download XLSX</button>
+      <button id='btn-missing'>Download Missing Keys</button>
     </div>
     <div id='result-table'></div>
   </div>
@@ -77,96 +80,118 @@
   <script src='https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js'></script>
   <script src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'></script>
   <script>
-    let data1 = [], data2 = [], resultData = []
+    let data1 = [], data2 = [], resultData = [], missingList = [];
 
     function toggleSection(id, link) {
-      const section = document.getElementById(id)
-      const isActive = link.classList.contains('active')
-      document.querySelectorAll('.options a').forEach(a => a.classList.remove('active'))
-      document.querySelectorAll('.section').forEach(s => s.style.display = 'none')
-      if (!isActive) {
-        section.style.display = 'block'
-        link.classList.add('active')
-        if (id === 'supplier') flatpickr('.date-input', { dateFormat: 'm/d/Y', allowInput: true })
+      document.querySelectorAll('.options a').forEach(a => a.classList.remove('active'));
+      document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
+      if (!link.classList.contains('active')) {
+        document.getElementById(id).style.display = 'block';
+        link.classList.add('active');
+        if (id === 'supplier') flatpickr('.date-input', { dateFormat: 'm/d/Y', allowInput: true });
       }
     }
 
     function handleFile(file, idx) {
-      const ext = file.name.split('.') .pop() .toLowerCase()
-      const reader = new FileReader()
+      const ext = file.name.split('.').pop().toLowerCase();
+      const reader = new FileReader();
       reader.onload = e => {
-        let rows
-        if (ext === 'csv') rows = Papa.parse(e.target.result, { header: true }).data
-        else {
-          const wb = XLSX.read(e.target.result, { type: 'binary' })
-          rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' })
+        let rows;
+        if (ext === 'csv') {
+          rows = Papa.parse(e.target.result, { header: true }).data;
+        } else {
+          const wb = XLSX.read(e.target.result, { type: 'binary' });
+          rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
         }
-        if (idx === 1) data1 = rows
-        else data2 = rows
-        if (data1.length && data2.length) populateHeaders()
-      }
-      if (ext === 'csv') reader.readAsText(file)
-      else reader.readAsBinaryString(file)
+        if (idx === 1) data1 = rows; else data2 = rows;
+        if (data1.length && data2.length) populateHeaders();
+      };
+      if (ext === 'csv') reader.readAsText(file); else reader.readAsBinaryString(file);
     }
-
-    document.getElementById('file1').addEventListener('change', e => handleFile(e.target.files[0], 1))
-    document.getElementById('file2').addEventListener('change', e => handleFile(e.target.files[0], 2))
+    document.getElementById('file1').addEventListener('change', e => handleFile(e.target.files[0], 1));
+    document.getElementById('file2').addEventListener('change', e => handleFile(e.target.files[0], 2));
 
     function populateHeaders() {
-      const headers = Object.keys(data1[0])
-      document.getElementById('key').innerHTML = headers.map(h => '<option value=\'' + h + '\'>' + h + '</option>').join('')
-      document.getElementById('price').innerHTML = headers.map(h => '<option value=\'' + h + '\'>' + h + '</option>').join('')
-      document.getElementById('header-selects').style.display = 'block'
+      const headers = Object.keys(data1[0]);
+      document.getElementById('key').innerHTML = headers.map(h => `<option value='${h}'>${h}</option>`).join('');
+      document.getElementById('price').innerHTML = headers.map(h => `<option value='${h}'>${h}</option>`).join('');
+      document.getElementById('header-selects').style.display = 'block';
     }
 
     function computeDifference() {
-      const key = document.getElementById('key').value
-      const priceCol = document.getElementById('price').value
-      const map2 = new Map(data2.map(r => [r[key], r]))
-      resultData = data1.map(r => {
-        const match = map2.get(r[key]) || {}
-        const v1 = parseFloat(r[priceCol]) || 0
-        const v2 = parseFloat(match[priceCol]) || 0
-        const diff = v2 - v1
-        const pct = v1 !== 0 ? (diff / v1 * 100).toFixed(2) + '%' : 'N/A'
-        return Object.assign({}, r, {
-          [priceCol + '_file1']: v1.toFixed(2),
-          [priceCol + '_file2']: v2.toFixed(2),
-          [priceCol + '_difference']: diff.toFixed(2),
-          [priceCol + '_pct_diff']: pct
-        })
-      })
-      displayResult(resultData)
-      document.getElementById('download-controls').style.display = 'block'
+      const key = document.getElementById('key').value;
+      const priceCol = document.getElementById('price').value;
+      const map2 = new Map(data2.map(r => [r[key], r]));
+      const map1 = new Map(data1.map(r => [r[key], r]));
+
+      // Build missing list with full row details
+      const missingIn2 = data1.filter(r => !map2.has(r[key]));
+      const missingIn1 = data2.filter(r => !map1.has(r[key]));
+      missingList = missingIn2.map(r => ({ missingIn: 'File 2', ...r })).concat(missingIn1.map(r => ({ missingIn: 'File 1', ...r })));
+
+      // Show alert if missing
+      if (missingList.length) {
+        alert(missingList.map(item => `Key '${item[key]}' missing in ${item.missingIn}`).join('\n')); 
+      }
+
+      // Process only common rows
+      const commonRows = data1.filter(r => map2.has(r[key]));
+      resultData = commonRows.map(r => {
+        const match = map2.get(r[key]);
+        const v1 = parseFloat(r[priceCol]) || 0;
+        const v2 = parseFloat(match[priceCol]) || 0;
+        const diff = (v2 - v1).toFixed(2);
+        const pct = v1 !== 0 ? ((v2 - v1) / v1 * 100).toFixed(2) + '%' : 'N/A';
+        return {
+          ...r,
+          [`${priceCol}_file1`]: v1.toFixed(2),
+          [`${priceCol}_file2`]: v2.toFixed(2),
+          [`${priceCol}_difference`]: diff,
+          [`${priceCol}_pct_diff`]: pct
+        };
+      });
+
+      displayResult(resultData);
+      document.getElementById('download-controls').style.display = 'block';
     }
 
     function displayResult(rows) {
-      if (!rows.length) return
-      const cols = Object.keys(rows[0])
-      let html = '<table><thead><tr>' + cols.map(c => '<th>' + c + '</th>').join('') + '</tr></thead><tbody>'
+      if (!rows.length) return;
+      const cols = Object.keys(rows[0]);
+      let html = `<table><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>`;
       rows.forEach(r => {
-        html += '<tr>' + cols.map(c => '<td>' + (r[c] || '') + '</td>').join('') + '</tr>'
-      })
-      html += '</tbody></table>'
-      document.getElementById('result-table').innerHTML = html
+        html += `<tr>${cols.map(c => `<td>${r[c] || ''}</td>`).join('')}</tr>`;
+      });
+      html += '</tbody></table>';
+      document.getElementById('result-table').innerHTML = html;
     }
 
     document.getElementById('btn-csv').addEventListener('click', () => {
-      const csv = Papa.unparse(resultData)
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a'); a.href = url; a.download = 'result.csv'; a.click(); URL.revokeObjectURL(url)
-    })
+      const csv = Papa.unparse(resultData);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'result.csv'; a.click();
+    });
 
     document.getElementById('btn-xlsx').addEventListener('click', () => {
-      const ws = XLSX.utils.json_to_sheet(resultData)
-      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Result')
-      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' })
-      function s2ab(s) { const buf = new ArrayBuffer(s.length); const view = new Uint8Array(buf); for (let i = 0; i < s.length; i++) view[i] = s.charCodeAt(i) & 0xFF; return buf }
-      const blob = new Blob([s2ab(wbout)], { type: 'application/octet-stream' })
-      const url = URL.createObjectURL(blob)
-      const a = document.createElement('a'); a.href = url; a.download = 'result.xlsx'; a.click(); URL.revokeObjectURL(url)
-    })
+      const ws = XLSX.utils.json_to_sheet(resultData);
+      const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Result');
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
+      const buf = new ArrayBuffer(wbout.length);
+      const view = new Uint8Array(buf);
+      for (let i = 0; i < wbout.length; ++i) view[i] = wbout.charCodeAt(i);
+      const blob = new Blob([buf], { type: 'application/octet-stream' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'result.xlsx'; a.click();
+    });
+
+    document.getElementById('btn-missing').addEventListener('click', () => {
+      if (!missingList.length) return alert('No missing keys to download.');
+      const csv = Papa.unparse(missingList);
+      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
+      const url = URL.createObjectURL(blob);
+      const a = document.createElement('a'); a.href = url; a.download = 'missing_keys.csv'; a.click();
+    });
   </script>
 </body>
 </html>
