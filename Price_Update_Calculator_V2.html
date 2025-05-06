@@ -1,0 +1,219 @@
+<!-- calculator.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Price Difference Calculator</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    h1 { margin-bottom: 1rem; }
+    .form-group { margin-bottom: 1rem; }
+    /* Hide detailed table to improve performance */
+    #result-table { display: none; }
+    /* Summary and stats styling */
+    #selected-supplier, #avg-diff, #avg-pct, #total-skus, #changed-skus { margin-top: 1rem; font-weight: bold; }
+    #stats, #download-controls { margin-top: 1rem; }
+  </style>
+</head>
+<body>
+  <h1>Price Difference Calculator</h1>
+  <div class="form-group">
+    <input type="file" id="file1" accept=".csv, .xlsx">
+    <input type="file" id="file2" accept=".csv, .xlsx">
+  </div>
+
+  <div class="form-group" id="header-selects" style="display:none;">
+    <label>Key Column: <select id="key"></select></label>
+    <label>Price Column: <select id="price"></select></label>
+    <button onclick="computeDifference()">Compute Difference</button>
+  </div>
+
+  <div class="form-group" id="supplier-section" style="display:none;">
+    <label for="supplier">Supplier: </label>
+    <select id="supplier">
+      <option value="Meyer">Meyer</option>
+      <option value="Turn14">Turn14</option>
+      <option value="Tonsa">Tonsa</option>
+      <option value="USAUTO KVDS 12">USAUTO KVDS 12</option>
+      <option value="USAUTO KV 11">USAUTO KV 11</option>
+      <option value="Depo">Depo</option>
+      <option value="Eagle">Eagle</option>
+      <option value="TYC">TYC</option>
+      <option value="K-Source">K-Source</option>
+      <option value="LKQ">LKQ</option>
+      <option value="KSI">KSI</option>
+    </select>
+    <button id="supplier-btn" onclick="selectSupplier()">Supplier</button>
+  </div>
+
+  <div id="selected-supplier"></div>
+  <div id="avg-diff"></div>
+  <div id="avg-pct"></div>
+
+  <div id="stats" style="display:none;">
+    <div id="total-skus"></div>
+    <div id="changed-skus"></div>
+  </div>
+
+  <div id="download-controls" style="display:none;">
+    <button id="btn-csv">Download CSV</button>
+    <button id="btn-xlsx">Download XLSX</button>
+    <button id="btn-missing">Download Missing Keys</button>
+  </div>
+
+  <div id="result-table"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    let file1Ref, file2Ref;
+    let selectedKey, selectedPrice, selectedSupplier = '';
+    let avgDiffVal = 0, avgPctVal = 0, totalRows = 0, changedCount = 0;
+    let missingList = [];
+    let allResults = [];
+    const BATCH_SIZE = 500;
+
+    document.getElementById('file1').addEventListener('change', e => handleFile(e.target.files[0], 1));
+    document.getElementById('file2').addEventListener('change', e => handleFile(e.target.files[0], 2));
+
+    function handleFile(file, idx) {
+      if (idx === 1) file1Ref = file; else file2Ref = file;
+      const ext = file.name.split('.').pop().toLowerCase();
+      const reader = new FileReader();
+      reader.onload = e => {
+        let rows = ext === 'csv'
+          ? Papa.parse(e.target.result, { header: true }).data
+          : XLSX.utils.sheet_to_json(
+              XLSX.read(e.target.result, { type: 'binary' }).Sheets[
+                XLSX.read(e.target.result, { type: 'binary' }).SheetNames[0]
+              ], { defval: '' }
+            );
+        if (idx === 1) data1Head = rows.slice(0,1); else data2Head = rows.slice(0,1);
+        if (file1Ref && file2Ref) populateHeaders();
+      };
+      ext === 'csv' ? reader.readAsText(file) : reader.readAsBinaryString(file);
+    }
+
+    function populateHeaders() {
+      const headers = Object.keys(data1Head[0]);
+      document.getElementById('key').innerHTML = headers.map(h => `<option>${h}</option>`).join('');
+      document.getElementById('price').innerHTML = headers.map(h => `<option>${h}</option>`).join('');
+      document.getElementById('header-selects').style.display = 'block';
+      document.getElementById('supplier-section').style.display = 'block';
+    }
+
+    function selectSupplier() {
+      selectedSupplier = document.getElementById('supplier').value;
+      document.getElementById('selected-supplier').textContent = `Supplier: ${selectedSupplier}`;
+      document.getElementById('supplier-section').style.display = 'none';
+    }
+
+    function computeDifference() {
+      avgDiffVal = avgPctVal = totalRows = changedCount = 0;
+      missingList = [];
+      allResults = [];
+
+      selectedKey = document.getElementById('key').value;
+      selectedPrice = document.getElementById('price').value;
+
+      const refMap = new Map();
+      const ext2 = file2Ref.name.split('.').pop().toLowerCase();
+
+      // Load reference file
+      const loadRef = () => new Promise(res => {
+        if (ext2 === 'csv') {
+          Papa.parse(file2Ref, { header: true, worker: true,
+            chunk: chunk => chunk.data.forEach(r => refMap.set(r[selectedKey], r)),
+            complete: () => res()
+          });
+        } else {
+          const fr = new FileReader();
+          fr.onload = e => {
+            const wb = XLSX.read(e.target.result, { type:'binary' });
+            XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' })
+              .forEach(r => refMap.set(r[selectedKey], r));
+            res();
+          };
+          fr.readAsBinaryString(file2Ref);
+        }
+      });
+
+      const processRows = rows => {
+        rows.forEach(r => {
+          const k = r[selectedKey];
+          if (!refMap.has(k)) {
+            if (!missingList.find(m => m.row[selectedKey] === k && m.missingIn === 'File 2')) {
+              missingList.push({ row: r, missingIn: 'File 2' });
+            }
+            return;
+          }
+          const ref = refMap.get(k);
+          const v1 = parseFloat(r[selectedPrice]) || 0;
+          const v2 = parseFloat(ref[selectedPrice]) || 0;
+          const diff = v2 - v1;
+          const pct = v1 ? (diff / v1) * 100 : 0;
+
+          totalRows++;
+          avgDiffVal += diff;
+          avgPctVal += pct;
+          if (diff !== 0) changedCount++;
+
+          const out = { ...r };
+          out[`${selectedPrice}_file1`] = v1.toFixed(2);
+          out[`${selectedPrice}_file2`] = v2.toFixed(2);
+          out[`${selectedPrice}_difference`] = diff.toFixed(2);
+          out[`${selectedPrice}_pct_diff`] = pct.toFixed(2) + '%';
+
+          allResults.push(out);
+        });
+      };
+
+      const processFile1 = () => {
+        const ext1 = file1Ref.name.split('.').pop().toLowerCase();
+        if (ext1 === 'csv') {
+          Papa.parse(file1Ref, { header:true, worker:true,
+            chunk: c => processRows(c.data), complete: finalize
+          });
+        } else {
+          const fr1 = new FileReader();
+          fr1.onload = e => {
+            const wb = XLSX.read(e.target.result, { type:'binary' });
+            processRows(XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' }));
+            finalize();
+          };
+          fr1.readAsBinaryString(file1Ref);
+        }
+      };
+
+      const finalize = () => {
+        // missing in file1
+        refMap.forEach((row, k) => {
+          if (!allResults.find(r => r[selectedKey] === k)) {
+            missingList.push({ row: row, missingIn: 'File 1' });
+          }
+        });
+        if (missingList.length) {
+          alert(missingList.map(m => `Key '${m.row[selectedKey]}' missing in ${m.missingIn}`).join('\n'));
+          document.getElementById('btn-missing').style.display = 'inline-block';
+        } else {
+          document.getElementById('btn-missing').style.display = 'none';
+        }
+
+        document.getElementById('avg-diff').textContent = `Average Difference: ${(avgDiffVal/totalRows).toFixed(2)}`;
+        document.getElementById('avg-pct').textContent = `Average % Difference: ${(avgPctVal/totalRows).toFixed(2)}%`;
+        document.getElementById('total-skus').textContent = `Total Number of SKUs: ${totalRows}`;
+        document.getElementById('changed-skus').textContent = `SKUs with price change: ${changedCount}`;
+        document.getElementById('stats').style.display = 'block';
+        document.getElementById('download-controls').style.display = 'block';
+      };
+
+      loadRef().then(processFile1);
+    }
+
+    // Download handlers (unchanged)...
+  </script>
+</body>
+</html>
