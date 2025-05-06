@@ -5,7 +5,7 @@
   <meta http-equiv='X-UA-Compatible' content='IE=edge'>
   <meta name='viewport' content='width=device-width, initial-scale=1.0'>
   <title>Supplier Tools</title>
-  <link href='https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css' rel='stylesheet'>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
   <style>
     body { font-family: Arial, sans-serif; margin: 2rem; }
     h1 { margin-bottom: 1rem; }
@@ -18,75 +18,75 @@
     td.supplier-cell { display: flex; align-items: center; }
     td.supplier-cell input[type='checkbox'] { margin-right: 0.5rem; }
     input.date-input { width: 120px; }
+    #avg-diff { margin-top: 1rem; font-weight: bold; }
   </style>
 </head>
 <body>
   <h1>Supplier Tools</h1>
-  <div class='options'>
-    <a data-target='supplier' onclick='toggleSection(this.dataset.target, this)'>Supplier Price List Update</a>
-    <a data-target='calculator' onclick='toggleSection(this.dataset.target, this)'>Price Difference Calculator</a>
+  <div class="options">
+    <a data-target="supplier" onclick="toggleSection('supplier', this)">Supplier Price List Update</a>
+    <a data-target="calculator" onclick="toggleSection('calculator', this)">Price Difference Calculator</a>
   </div>
 
   <!-- Supplier Section -->
-  <div id='supplier' class='section'>
+  <div id="supplier" class="section">
     <h2>Supplier Price List Update</h2>
     <form>
       <table>
         <thead>
-          <tr>
-            <th>Supplier</th>
-            <th>Last Update</th>
-            <th>Recent Update</th>
-          </tr>
+          <tr><th>Supplier</th><th>Last Update</th><th>Recent Update</th></tr>
         </thead>
         <tbody>
-          <tr><td class='supplier-cell'><input type='checkbox'> Meyer</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> Turn14</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> Tonsa</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> USAUTO KVDS 12</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> USAUTO KV 11</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> Depo</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> Eagle</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> TYC</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> K-Source</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> LKQ</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
-          <tr><td class='supplier-cell'><input type='checkbox'> KSI</td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td><td><input type='text' class='date-input' placeholder='MM/DD/YYYY'></td></tr>
+          <tr><td class="supplier-cell"><input type="checkbox"> Meyer</td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td></tr>
+          <tr><td class="supplier-cell"><input type="checkbox"> Turn14</td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td></tr>
+          <tr><td class="supplier-cell"><input type="checkbox"> Tonsa</td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td></tr>
+          <tr><td class="supplier-cell"><input type="checkbox"> USAUTO KVDS 12</td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td></tr>
+          <tr><td class="supplier-cell"><input type="checkbox"> USAUTO KV 11</td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td></tr>
+          <tr><td class="supplier-cell"><input type="checkbox"> Depo</td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td></tr>
+          <tr><td class="supplier-cell"><input type="checkbox"> Eagle</td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td></tr>
+          <tr><td class="supplier-cell"><input type="checkbox"> TYC</td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td></tr>
+          <tr><td class="supplier-cell"><input type="checkbox"> K-Source</td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td></tr>
+          <tr><td class="supplier-cell"><input type="checkbox"> LKQ</td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td></tr>
+          <tr><td class="supplier-cell"><input type="checkbox"> KSI</td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td><td><input type="text" class="date-input" placeholder="MM/DD/YYYY"></td></tr>
         </tbody>
       </table>
     </form>
   </div>
 
   <!-- Calculator Section -->
-  <div id='calculator' class='section'>
+  <div id="calculator" class="section">
     <h2>Price Difference Calculator</h2>
     <div>
-      <input type='file' id='file1' accept='.csv, .xlsx'>
-      <input type='file' id='file2' accept='.csv, .xlsx'>
+      <input type="file" id="file1" accept=".csv, .xlsx">
+      <input type="file" id="file2" accept=".csv, .xlsx">
     </div>
-    <div id='header-selects' style='display:none; margin-top:1rem;'>
-      <label>Key Column: <select id='key'></select></label>
-      <label>Price Column: <select id='price'></select></label>
-      <button type='button' onclick='computeDifference()'>Compute Difference</button>
+    <div id="header-selects" style="display:none; margin-top:1rem;">
+      <label>Key Column: <select id="key"></select></label>
+      <label>Price Column: <select id="price"></select></label>
+      <button type="button" onclick="computeDifference()">Compute Difference</button>
     </div>
-    <div id='download-controls' style='display:none; margin-top: 1rem;'>
-      <button id='btn-csv'>Download CSV</button>
-      <button id='btn-xlsx'>Download XLSX</button>
-      <button id='btn-missing'>Download Missing Keys</button>
+    <div id="download-controls" style="display:none; margin-top: 1rem;">
+      <button id="btn-csv">Download CSV</button>
+      <button id="btn-xlsx">Download XLSX</button>
+      <button id="btn-missing">Download Missing Keys</button>
     </div>
-    <div id='result-table'></div>
+    <div id="avg-diff"></div>
+    <div id="result-table"></div>
   </div>
 
-  <script src='https://cdn.jsdelivr.net/npm/flatpickr'></script>
-  <script src='https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js'></script>
-  <script src='https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js'></script>
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
     let data1 = [], data2 = [], resultData = [], missingList = [];
 
     function toggleSection(id, link) {
+      const section = document.getElementById(id);
+      const isActive = link.classList.contains('active');
       document.querySelectorAll('.options a').forEach(a => a.classList.remove('active'));
       document.querySelectorAll('.section').forEach(s => s.style.display = 'none');
-      if (!link.classList.contains('active')) {
-        document.getElementById(id).style.display = 'block';
+      if (!isActive) {
+        section.style.display = 'block';
         link.classList.add('active');
         if (id === 'supplier') flatpickr('.date-input', { dateFormat: 'm/d/Y', allowInput: true });
       }
@@ -97,9 +97,8 @@
       const reader = new FileReader();
       reader.onload = e => {
         let rows;
-        if (ext === 'csv') {
-          rows = Papa.parse(e.target.result, { header: true }).data;
-        } else {
+        if (ext === 'csv') rows = Papa.parse(e.target.result, { header: true }).data;
+        else {
           const wb = XLSX.read(e.target.result, { type: 'binary' });
           rows = XLSX.utils.sheet_to_json(wb.Sheets[wb.SheetNames[0]], { defval: '' });
         }
@@ -124,32 +123,30 @@
       const map2 = new Map(data2.map(r => [r[key], r]));
       const map1 = new Map(data1.map(r => [r[key], r]));
 
-      // Build missing list with full row details
       const missingIn2 = data1.filter(r => !map2.has(r[key]));
       const missingIn1 = data2.filter(r => !map1.has(r[key]));
-      missingList = missingIn2.map(r => ({ missingIn: 'File 2', ...r })).concat(missingIn1.map(r => ({ missingIn: 'File 1', ...r })));
+      missingList = missingIn2.map(r => ({ missingIn: 'File 2', ...r })).concat(missingIn1.map(r => ({ missingIn: 'File 1', ...r })));        
+      if (missingList.length) alert(missingList.map(item => `Key '${item[key]}' missing in ${item.missingIn}`).join('\n'));
 
-      // Show alert if missing
-      if (missingList.length) {
-        alert(missingList.map(item => `Key '${item[key]}' missing in ${item.missingIn}`).join('\n')); 
-      }
-
-      // Process only common rows
       const commonRows = data1.filter(r => map2.has(r[key]));
       resultData = commonRows.map(r => {
         const match = map2.get(r[key]);
         const v1 = parseFloat(r[priceCol]) || 0;
         const v2 = parseFloat(match[priceCol]) || 0;
-        const diff = (v2 - v1).toFixed(2);
-        const pct = v1 !== 0 ? ((v2 - v1) / v1 * 100).toFixed(2) + '%' : 'N/A';
+        const diff = v2 - v1;
+        const pct = v1 !== 0 ? (diff / v1 * 100) : 0;
         return {
           ...r,
           [`${priceCol}_file1`]: v1.toFixed(2),
           [`${priceCol}_file2`]: v2.toFixed(2),
-          [`${priceCol}_difference`]: diff,
-          [`${priceCol}_pct_diff`]: pct
+          [`${priceCol}_difference`]: diff.toFixed(2),
+          [`${priceCol}_pct_diff`]: pct.toFixed(2) + '%'
         };
       });
+
+      const avgDiff = resultData.reduce((sum, r) => sum + parseFloat(r[`${priceCol}_difference`]), 0) / (resultData.length || 1);
+      const avgPct = resultData.reduce((sum, r) => sum + parseFloat(r[`${priceCol}_pct_diff`]), 0) / (resultData.length || 1);
+      document.getElementById('avg-diff').textContent = `Average Difference: ${avgDiff.toFixed(2)} (Avg % Diff: ${avgPct.toFixed(2)}%)`;
 
       displayResult(resultData);
       document.getElementById('download-controls').style.display = 'block';
@@ -159,9 +156,7 @@
       if (!rows.length) return;
       const cols = Object.keys(rows[0]);
       let html = `<table><thead><tr>${cols.map(c => `<th>${c}</th>`).join('')}</tr></thead><tbody>`;
-      rows.forEach(r => {
-        html += `<tr>${cols.map(c => `<td>${r[c] || ''}</td>`).join('')}</tr>`;
-      });
+      rows.forEach(r => html += `<tr>${cols.map(c => `<td>${r[c] || ''}</td>`).join('')}</tr>`);
       html += '</tbody></table>';
       document.getElementById('result-table').innerHTML = html;
     }
@@ -169,28 +164,23 @@
     document.getElementById('btn-csv').addEventListener('click', () => {
       const csv = Papa.unparse(resultData);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'result.csv'; a.click();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'result.csv'; a.click();
     });
 
     document.getElementById('btn-xlsx').addEventListener('click', () => {
       const ws = XLSX.utils.json_to_sheet(resultData);
       const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Result');
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
-      const buf = new ArrayBuffer(wbout.length);
-      const view = new Uint8Array(buf);
+      const buf = new ArrayBuffer(wbout.length); const view = new Uint8Array(buf);
       for (let i = 0; i < wbout.length; ++i) view[i] = wbout.charCodeAt(i);
       const blob = new Blob([buf], { type: 'application/octet-stream' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'result.xlsx'; a.click();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'result.xlsx'; a.click();
     });
 
     document.getElementById('btn-missing').addEventListener('click', () => {
       if (!missingList.length) return alert('No missing keys to download.');
       const csv = Papa.unparse(missingList);
-      const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const url = URL.createObjectURL(blob);
-      const a = document.createElement('a'); a.href = url; a.download = 'missing_keys.csv'; a.click();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); a.download = 'missing_keys.csv'; a.click();
     });
   </script>
 </body>
