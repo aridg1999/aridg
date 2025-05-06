@@ -1,0 +1,52 @@
+<!-- supplier.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supplier Price List Update</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    h1 { margin-bottom: 1rem; }
+    .form-group { margin-bottom: 1rem; }
+    label { display: block; margin-bottom: 0.5rem; }
+    select, input.date-input { width: 200px; padding: 0.5rem; }
+  </style>
+</head>
+<body>
+  <h1>Supplier Price List Update</h1>
+  <form>
+    <div class="form-group">
+      <label for="supplier">Supplier</label>
+      <select id="supplier">
+        <option>Meyer</option>
+        <option>Turn14</option>
+        <option>Tonsa</option>
+        <option>USAUTO KVDS 12</option>
+        <option>USAUTO KV 11</option>
+        <option>Depo</option>
+        <option>Eagle</option>
+        <option>TYC</option>
+        <option>K-Source</option>
+        <option>LKQ</option>
+        <option>KSI</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <label for="last-update">Last Update</label>
+      <input type="text" id="last-update" class="date-input" placeholder="MM/DD/YYYY">
+    </div>
+    <div class="form-group">
+      <label for="recent-update">Recent Update</label>
+      <input type="text" id="recent-update" class="date-input" placeholder="MM/DD/YYYY">
+    </div>
+  </form>
+
+  <script src="https://cdn.jsdelivr.net/npm/flatpickr"></script>
+  <script>
+    flatpickr('.date-input', { dateFormat: 'm/d/Y', allowInput: true });
+  </script>
+</body>
+</html>

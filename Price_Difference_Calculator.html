@@ -1,0 +1,121 @@
+<!-- calculator.html -->
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Price Difference Calculator</title>
+  <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr/dist/flatpickr.min.css">
+  <style>
+    body { font-family: Arial, sans-serif; margin: 2rem; }
+    h1 { margin-bottom: 1rem; }
+    .form-group { margin-bottom: 1rem; }
+    table { width: 100%; border-collapse: collapse; margin-top: 1rem; }
+    th, td { border: 1px solid #ddd; padding: 0.75rem; text-align: left; }
+    #avg-diff { margin-top: 1rem; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>Price Difference Calculator</h1>
+  <div class="form-group">
+    <input type="file" id="file1" accept=".csv, .xlsx">
+    <input type="file" id="file2" accept=".csv, .xlsx">
+  </div>
+  <div class="form-group" id="header-selects" style="display:none;">
+    <label>Key Column: <select id="key"></select></label>
+    <label>Price Column: <select id="price"></select></label>
+    <button onclick="computeDifference()">Compute Difference</button>
+  </div>
+  <div id="download-controls" style="display:none; margin-top:1rem;">
+    <button id="btn-csv">Download CSV</button>
+    <button id="btn-xlsx">Download XLSX</button>
+    <button id="btn-missing">Download Missing Keys</button>
+  </div>
+  <div id="avg-diff"></div>
+  <div id="result-table"></div>
+
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script>
+    let data1 = [], data2 = [], resultData = [], missingList = [], selectedKey, selectedPrice, avgDiffVal = 0, avgPctVal = 0;
+
+    document.getElementById('file1').addEventListener('change', e => handleFile(e.target.files[0], 1));
+    document.getElementById('file2').addEventListener('change', e => handleFile(e.target.files[0], 2));
+
+    function handleFile(file, idx) {
+      const ext = file.name.split('.').pop().toLowerCase();
+      const reader = new FileReader();
+      reader.onload = e => {
+        let rows = ext === 'csv'
+          ? Papa.parse(e.target.result, { header: true }).data
+          : XLSX.utils.sheet_to_json(XLSX.read(e.target.result, { type: 'binary' }).Sheets[XLSX.read(e.target.result, { type: 'binary' }).SheetNames[0]], { defval: '' });
+        if (idx === 1) data1 = rows; else data2 = rows;
+        if (data1.length && data2.length) populateHeaders();
+      };
+      if (ext === 'csv') reader.readAsText(file); else reader.readAsBinaryString(file);
+    }
+
+    function populateHeaders() {
+      const headers = Object.keys(data1[0]);
+      document.getElementById('key').innerHTML = headers.map(h => `<option>${h}</option>`).join('');
+      document.getElementById('price').innerHTML = headers.map(h => `<option>${h}</option>`).join('');
+      document.getElementById('header-selects').style.display = 'block';
+    }
+
+    function computeDifference() {
+      const key = document.getElementById('key').value;
+      const priceCol = document.getElementById('price').value;
+      selectedKey = key; selectedPrice = priceCol;
+      const map2 = new Map(data2.map(r => [r[key], r]));
+      const map1 = new Map(data1.map(r => [r[key], r]));
+      const missingIn2 = data1.filter(r => !map2.has(r[key]));
+      const missingIn1 = data2.filter(r => !map1.has(r[key]));
+      missingList = missingIn2.map(r => ({ missingIn: 'File 2', ...r })).concat(missingIn1.map(r => ({ missingIn: 'File 1', ...r })));
+      if (missingList.length) alert(missingList.map(item => `Key '${item[key]}' missing in ${item.missingIn}`).join('\n'));
+      const common = data1.filter(r => map2.has(r[key]));
+      resultData = common.map(r => {
+        const m = map2.get(r[key]);
+        const v1 = parseFloat(r[priceCol])||0, v2 = parseFloat(m[priceCol])||0;
+        const diff = v2-v1;
+        const pct = v1?((diff/v1)*100):0;
+        return {...r,
+          [`${priceCol}_file1`]:v1.toFixed(2),
+          [`${priceCol}_file2`]:v2.toFixed(2),
+          [`${priceCol}_difference`]:diff.toFixed(2),
+          [`${priceCol}_pct_diff`]:pct.toFixed(2)+'%'};
+      });
+      avgDiffVal = resultData.reduce((s,r)=>s+parseFloat(r[`${priceCol}_difference`]),0)/(resultData.length||1);
+      avgPctVal = resultData.reduce((s,r)=>s+parseFloat(r[`${priceCol}_pct_diff`]),0)/(resultData.length||1);
+      document.getElementById('avg-diff').textContent=`Average: ${avgDiffVal.toFixed(2)} (${avgPctVal.toFixed(2)}%)`;
+      displayResult(resultData);
+      document.getElementById('download-controls').style.display='block';
+    }
+
+    function displayResult(rows){
+      if(!rows.length)return;
+      const cols=Object.keys(rows[0]);
+      let html='<table><thead><tr>'+cols.map(c=>`<th>${c}</th>`).join('')+'</tr></thead><tbody>';
+      rows.forEach(r=>{html+='<tr>'+cols.map(c=>`<td>${r[c]||''}</td>`).join('')+'</tr>'});
+      html+='</tbody></table>';
+      document.getElementById('result-table').innerHTML=html;
+    }
+
+    document.getElementById('btn-csv').addEventListener('click',()=>{
+      const ex=[...resultData];
+      const sum={};Object.keys(ex[0]||{}).forEach(c=>sum[c]='');
+      sum[selectedKey]='Average';sum[`${selectedPrice}_difference`]=avgDiffVal.toFixed(2);
+      sum[`${selectedPrice}_pct_diff`]=avgPctVal.toFixed(2)+'%';ex.push(sum);
+      const csv=Papa.unparse(ex);
+      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='with_avg.csv';a.click();
+    });
+    document.getElementById('btn-xlsx').addEventListener('click',()=>{
+      const ex=[...resultData];const sum={};Object.keys(ex[0]||{}).forEach(c=>sum[c]='');sum[selectedKey]='Average';sum[`${selectedPrice}_difference`]=avgDiffVal.toFixed(2);sum[`${selectedPrice}_pct_diff`]=avgPctVal.toFixed(2)+'%';ex.push(sum);
+      const ws=XLSX.utils.json_to_sheet(ex);const wb=XLSX.utils.book_new();XLSX.utils.book_append_sheet(wb,ws,'Result');
+      const wbout=XLSX.write(wb,{bookType:'xlsx',type:'binary'});const buf=new ArrayBuffer(wbout.length),view=new Uint8Array(buf);for(let i=0;i<wbout.length;i++)view[i]=wbout.charCodeAt(i);
+      const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([buf],{type:'application/octet-stream'}));a.download='with_avg.xlsx';a.click();
+    });
+    document.getElementById('btn-missing').addEventListener('click',()=>{if(!missingList.length)return alert('No missing');const csv=Papa.unparse(missingList);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='missing.csv';a.click();});
+  </script>
+</body>
+</html>
