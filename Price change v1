@@ -78,7 +78,7 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script>
-    let data1 = [], data2 = [], resultData = [], missingList = [];
+    let data1 = [], data2 = [], resultData = [], missingList = [], selectedKey = '', selectedPrice = '', avgDiffVal = 0, avgPctVal = 0;
 
     function toggleSection(id, link) {
       const section = document.getElementById(id);
@@ -120,12 +120,15 @@
     function computeDifference() {
       const key = document.getElementById('key').value;
       const priceCol = document.getElementById('price').value;
+      selectedKey = key;
+      selectedPrice = priceCol;
       const map2 = new Map(data2.map(r => [r[key], r]));
       const map1 = new Map(data1.map(r => [r[key], r]));
 
       const missingIn2 = data1.filter(r => !map2.has(r[key]));
       const missingIn1 = data2.filter(r => !map1.has(r[key]));
-      missingList = missingIn2.map(r => ({ missingIn: 'File 2', ...r })).concat(missingIn1.map(r => ({ missingIn: 'File 1', ...r })));        
+      missingList = missingIn2.map(r => ({ missingIn: 'File 2', ...r }))
+        .concat(missingIn1.map(r => ({ missingIn: 'File 1', ...r })));
       if (missingList.length) alert(missingList.map(item => `Key '${item[key]}' missing in ${item.missingIn}`).join('\n'));
 
       const commonRows = data1.filter(r => map2.has(r[key]));
@@ -144,9 +147,9 @@
         };
       });
 
-      const avgDiff = resultData.reduce((sum, r) => sum + parseFloat(r[`${priceCol}_difference`]), 0) / (resultData.length || 1);
-      const avgPct = resultData.reduce((sum, r) => sum + parseFloat(r[`${priceCol}_pct_diff`]), 0) / (resultData.length || 1);
-      document.getElementById('avg-diff').textContent = `Average Difference: ${avgDiff.toFixed(2)} (Avg % Diff: ${avgPct.toFixed(2)}%)`;
+      avgDiffVal = resultData.reduce((sum, r) => sum + parseFloat(r[`${priceCol}_difference`]), 0) / (resultData.length || 1);
+      avgPctVal = resultData.reduce((sum, r) => sum + parseFloat(r[`${priceCol}_pct_diff`]), 0) / (resultData.length || 1);
+      document.getElementById('avg-diff').textContent = `Average Difference: ${avgDiffVal.toFixed(2)} (Avg % Diff: ${avgPctVal.toFixed(2)}%)`;
 
       displayResult(resultData);
       document.getElementById('download-controls').style.display = 'block';
@@ -162,23 +165,37 @@
     }
 
     document.getElementById('btn-csv').addEventListener('click', () => {
-      const csv = Papa.unparse(resultData);
+      const exportData = [...resultData];
+      const summary = {};
+      Object.keys(exportData[0] || {}).forEach(c => summary[c] = '');
+      summary[selectedKey] = 'Average';
+      summary[`${selectedPrice}_difference`] = avgDiffVal.toFixed(2);
+      summary[`${selectedPrice}_pct_diff`] = avgPctVal.toFixed(2) + '%';
+      exportData.push(summary);
+      const csv = Papa.unparse(exportData);
       const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'result.csv'; a.click();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'result_with_avg.csv'; a.click();
     });
 
     document.getElementById('btn-xlsx').addEventListener('click', () => {
-      const ws = XLSX.utils.json_to_sheet(resultData);
+      const exportData = [...resultData];
+      const summary = {};
+      Object.keys(exportData[0] || {}).forEach(c => summary[c] = '');
+      summary[selectedKey] = 'Average';
+      summary[`${selectedPrice}_difference`] = avgDiffVal.toFixed(2);
+      summary[`${selectedPrice}_pct_diff`] = avgPctVal.toFixed(2) + '%';
+      exportData.push(summary);
+      const ws = XLSX.utils.json_to_sheet(exportData);
       const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Result');
       const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'binary' });
       const buf = new ArrayBuffer(wbout.length); const view = new Uint8Array(buf);
       for (let i = 0; i < wbout.length; ++i) view[i] = wbout.charCodeAt(i);
       const blob = new Blob([buf], { type: 'application/octet-stream' });
-      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'result.xlsx'; a.click();
+      const a = document.createElement('a'); a.href = URL.createObjectURL(blob); a.download = 'result_with_avg.xlsx'; a.click();
     });
 
     document.getElementById('btn-missing').addEventListener('click', () => {
-      if (!missingList.length) return alert('No missing keys to download.');
+      if (!missingList.length) return alert('No missing keys.');
       const csv = Papa.unparse(missingList);
       const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([csv], { type: 'text/csv;charset=utf-8;' })); a.download = 'missing_keys.csv'; a.click();
     });
