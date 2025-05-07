@@ -16,14 +16,17 @@
     .card { background: #fff; padding: 1.5rem; margin-bottom: 1.5rem; border-radius: 10px; box-shadow: 0 4px 12px rgba(0,0,0,0.05); }
     .card h2 { font-size: 1.25rem; margin-bottom: 1rem; color: #444; }
     .form-row { display: flex; gap: 1rem; flex-wrap: wrap; }
-    .form-row input[type=file] { flex: 1; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; }
     label { font-weight: 600; margin-bottom: 0.5rem; display: block; color: #555; }
+    .file-label { width: 100%; cursor: pointer; }
+    .file-label input { display: none; }
+    .file-label::before { content: attr(data-label); display: block; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; background: #fff; }
     select, button { width: 100%; padding: 0.75rem; border: 1px solid #ddd; border-radius: 6px; font-size: 1rem; }
     button { background: #fbb03b; color: #fff; border: none; font-weight: 600; transition: background 0.2s; }
     button:hover { background: #e0a437; }
     #compute-btn { margin-top: 1rem; }
     .stats { display: none; margin-top: 1rem; font-weight: 600; color: #555; }
     .stats span.indicator { margin-left: 0.5rem; font-size: 1.2em; }
+    #selected-supplier { cursor: pointer; }
     #download-controls { display: none; margin-top: 1rem; gap: 1rem; justify-content: center; }
     #download-controls button { width: auto; flex: none; }
     /* Spinner overlay */
@@ -35,80 +38,53 @@
     #supplier-section { display: flex; align-items: center; gap: 0.5rem; }
     #supplier-section select { width: auto; flex: none; }
     #supplier-section button { flex: none; padding: 0.5rem 0.75rem; font-size: 0.9rem; height: auto; width: auto; }
-    #supplier-section select { width: auto; flex: none; }
-    #supplier-section button { flex: none; padding: 0.5rem 0.75rem; font-size: 0.9rem; height: auto; }
-    #supplier-section select { width: auto; flex: none; }
-    #supplier-section button { flex: none; }
   </style>
 </head>
 <body>
   <div class="container">
     <div class="logo-header">
-      <img src="Default KarParts360 LOGO Version 3.png" alt="KarParts360 Logo">
+      <img src="https://aridg1999.github.io/aridg/Default%20KarParts360%20LOGO%20Version%203.png" alt="KarParts360 Logo">
       <h1 class="title">Price Difference Calculator</h1>
+      <div style="text-align:center; color:#888; font-size:0.9rem; margin-top:0.5rem;">Created by Ariane S. De Guzman</div>
     </div>
 
     <div class="card" id="upload-cards">
       <h2>Upload Files</h2>
       <div class="form-row">
-        <input type="file" id="file1" accept=".csv,.xlsx">
+        <label class="file-label" data-label="Choose Old Pricing File">
+          <input type="file" id="file1" accept=".csv,.xlsx">
+        </label>
       </div>
       <div class="form-row" style="margin-top:1rem;">
-        <input type="file" id="file2" accept=".csv,.xlsx">
+        <label class="file-label" data-label="Choose New Pricing File">
+          <input type="file" id="file2" accept=".csv,.xlsx">
+        </label>
       </div>
     </div>
 
     <div class="card" id="config-card" style="display:none;">
       <h2>Configuration</h2>
       <div class="form-row" id="header-selects">
-        <div style="flex:1;">
-          <label for="key">Reference Column</label>
-          <select id="key"></select>
-        </div>
-        <div style="flex:1;">
-          <label for="price">Price Column</label>
-          <select id="price"></select>
-        </div>
+        <div style="flex:1;"><label for="key">Reference Column</label><select id="key"></select></div>
+        <div style="flex:1;"><label for="price">Price Column</label><select id="price"></select></div>
       </div>
       <div id="supplier-section" style="margin-top:1rem;">
         <label for="supplier">Supplier</label>
-        <select id="supplier">
-          <option value="">-- Select Supplier --</option>
-          <option>Meyer</option>
-          <option>Turn14</option>
-          <option>Tonsa</option>
-          <option>USAUTO KVDS 12</option>
-          <option>USAUTO KV 11</option>
-          <option>Depo</option>
-          <option>Eagle</option>
-          <option>TYC</option>
-          <option>K-Source</option>
-          <option>LKQ</option>
-          <option>KSI</option>
-        </select>
+        <select id="supplier"><option value="">-- Select Supplier --</option><option>Meyer</option><option>Turn14</option><option>Tonsa</option><option>USAUTO KVDS 12</option><option>USAUTO KV 11</option><option>Depo</option><option>Eagle</option><option>TYC</option><option>K-Source</option><option>LKQ</option><option>KSI</option></select>
         <button id="select-supplier-btn">Select</button>
       </div>
       <button id="compute-btn">Compute Difference</button>
     </div>
 
-    <div id="progress-overlay">
-      <div id="progress-dialog">
-        <div class="spinner"></div>
-        <div id="progress-text">Loading...</div>
-      </div>
-    </div>
+    <div id="progress-overlay"><div id="progress-dialog"><div class="spinner"></div><div id="progress-text">Loading...</div></div></div>
 
-    <div id="results-card" class="card" style="display:none;">
-      <h2>Results</h2>
+    <div id="results-card" class="card" style="display:none;"><h2>Results</h2>
       <div id="selected-supplier" class="stats"></div>
       <div id="avg-diff" class="stats">Average Difference: <span id="avg-diff-value"></span><span id="avg-diff-indicator" class="indicator"></span></div>
       <div id="avg-pct" class="stats">Average % Difference: <span id="avg-pct-value"></span><span id="avg-pct-indicator" class="indicator"></span></div>
       <div id="total-skus" class="stats"></div>
       <div id="changed-skus" class="stats"></div>
-      <div id="download-controls">
-        <button id="btn-csv">Download CSV</button>
-        <button id="btn-missing">Download Missing SKUs</button>
-      </div>
+      <div id="download-controls"><button id="btn-csv">Download CSV</button><button id="btn-missing">Download Missing SKUs</button><button id="btn-changed">Download Changed SKUs</button></div>
     </div>
   </div>
 
@@ -128,6 +104,11 @@
     document.getElementById('compute-btn').addEventListener('click',computeDifference);
     document.getElementById('btn-csv').addEventListener('click',downloadCSV);
     document.getElementById('btn-missing').addEventListener('click',downloadMissing);
+    document.getElementById('btn-changed').addEventListener('click',downloadChanged);
+    document.getElementById('selected-supplier').addEventListener('click', ()=>{
+      document.getElementById('supplier-section').style.display='flex';
+      document.getElementById('selected-supplier').style.display='none';
+    });
 
     function selectSupplier(){
       const s=document.getElementById('supplier').value;
@@ -147,14 +128,9 @@
       reader.onload=e=>{
         let rows;
         if(ext==='csv') rows=Papa.parse(e.target.result,{header:true}).data;
-        else{
-          const wb=XLSX.read(e.target.result,{type:'binary'});
-          const ws=wb.Sheets[wb.SheetNames[0]];
-          rows=XLSX.utils.sheet_to_json(ws,{defval:''});
-        }
-        if(idx===1) file1Ref={file,header:rows};
-        else file2Ref={file,header:rows};
-        if(file1Ref&&file2Ref){ document.getElementById('config-card').style.display='block'; showHeaderSelects(); }
+        else{const wb=XLSX.read(e.target.result,{type:'binary'}); const ws=wb.Sheets[wb.SheetNames[0]]; rows=XLSX.utils.sheet_to_json(ws,{defval:''});}
+        if(idx===1) file1Ref={file,header:rows}; else file2Ref={file,header:rows};
+        if(file1Ref&&file2Ref){document.getElementById('config-card').style.display='block';showHeaderSelects();}
       };
       ext==='csv'?reader.readAsText(file):reader.readAsBinaryString(file);
     }
@@ -168,36 +144,28 @@
     async function computeDifference(){
       if(!selectedSupplier){alert('Select supplier');return;}
       refMap.clear(); missingList=[]; allResults=[];
-      overlay.style.display='flex';
-      progressText.textContent='Indexing File 2...'; await new Promise(r=>setTimeout(r,100));
-      selectedKey=document.getElementById('key').value;
-      selectedPrice=document.getElementById('price').value;
-      file2Ref.header.forEach((row,i)=>{if(i%BATCH_SIZE===0)progressText.textContent=`Indexing ${i}`;refMap.set(row[selectedKey],row);});
+      overlay.style.display='flex'; progressText.textContent='Indexing File 2...'; await new Promise(r=>setTimeout(r,100));
+      selectedKey=document.getElementById('key').value; selectedPrice=document.getElementById('price').value;
+      file2Ref.header.forEach((row,i)=>{ if(i%BATCH_SIZE===0) progressText.textContent=`Indexing ${i}`; refMap.set(row[selectedKey],row); });
       progressText.textContent='Processing File 1...'; await new Promise(r=>setTimeout(r,100));
-      file1Ref.header.forEach((row,i)=>{
-        if(i%BATCH_SIZE===0)progressText.textContent=`Processing ${i}`;
-        const refRow=refMap.get(row[selectedKey]);
-        if(!refRow){missingList.push({...row,missingIn:'File 2'});return;}
-        const v1=parseFloat(row[selectedPrice])||0, v2=parseFloat(refRow[selectedPrice])||0;
-        const diff=v2-v1, pct=v1?(diff/v1)*100:0;
-        allResults.push({...row,[`${selectedPrice}_file1`]:v1.toFixed(2),[`${selectedPrice}_file2`]:v2.toFixed(2),[`${selectedPrice}_difference`]:diff.toFixed(2),[`${selectedPrice}_pct_diff`]:pct.toFixed(2)+'%'});
-      });
+      file1Ref.header.forEach((row,i)=>{ if(i%BATCH_SIZE===0) progressText.textContent=`Processing ${i}`; const refRow=refMap.get(row[selectedKey]); if(!refRow){ missingList.push({...row,missingIn:'File 2'}); return;} const v1=parseFloat(row[selectedPrice])||0, v2=parseFloat(refRow[selectedPrice])||0; const diff=v2-v1, pct=v1?(diff/v1)*100:0; allResults.push({...row,[`${selectedPrice}_file1`]:v1.toFixed(2),[`${selectedPrice}_file2`]:v2.toFixed(2),[`${selectedPrice}_difference`]:diff.toFixed(2),[`${selectedPrice}_pct_diff`]:pct.toFixed(2)+'%'});});
       progressText.textContent='Finalizing...'; await new Promise(r=>setTimeout(r,100));
-      const seen=new Set(file1Ref.header.map(r=>r[selectedKey])); file2Ref.header.forEach(row=>{if(!seen.has(row[selectedKey]))missingList.push({...row,missingIn:'File 1'});});
+      const seen=new Set(file1Ref.header.map(r=>r[selectedKey])); file2Ref.header.forEach(row=>{ if(!seen.has(row[selectedKey])) missingList.push({...row,missingIn:'File 1'}); });
       const avgDiff=allResults.reduce((s,r)=>s+parseFloat(r[`${selectedPrice}_difference`]),0)/allResults.length;
       const avgPct=allResults.reduce((s,r)=>s+parseFloat(r[`${selectedPrice}_pct_diff`]),0)/allResults.length;
       document.getElementById('avg-diff-value').textContent=avgDiff.toFixed(2);
       document.getElementById('avg-pct-value').textContent=avgPct.toFixed(2)+'%';
-      document.getElementById('avg-diff-indicator').textContent=avgDiff<0?'▲':avgDiff>0?'▼':'';
-      document.getElementById('avg-pct-indicator').textContent=avgPct<0?'▲':avgPct>0?'▼':'';
+      document.getElementById('avg-diff-indicator').textContent=avgDiff>0?'▲':avgDiff<0?'▼':'';
+      document.getElementById('avg-pct-indicator').textContent=avgPct>0?'▲':avgPct<0?'▼':'';
       ['results-card','avg-diff','avg-pct','total-skus','changed-skus'].forEach(id=>document.getElementById(id).style.display='block');
       document.getElementById('total-skus').textContent=`Total SKUs: ${allResults.length}`;
       document.getElementById('changed-skus').textContent=`SKUs with Price changed: ${allResults.filter(r=>parseFloat(r[`${selectedPrice}_difference`])!==0).length}`;
       document.getElementById('download-controls').style.display='flex'; overlay.style.display='none';
     }
 
-    function downloadCSV(){const csv=Papa.unparse(allResults);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='results_with_diff.csv';a.click();alert('CSV download completed');}
-    function downloadMissing(){const csv=Papa.unparse(missingList);const a=document.createElement('a');a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'}));a.download='missing_keys.csv';a.click();alert('Missing keys download completed');}
+    function downloadCSV(){ const csv=Papa.unparse(allResults); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='results_with_diff.csv'; a.click(); alert('CSV download completed'); }
+    function downloadMissing(){ const csv=Papa.unparse(missingList); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='missing_skus.csv'; a.click(); alert('Missing SKUs download completed'); }
+    function downloadChanged(){ const changedRows=allResults.filter(r=>parseFloat(r[`${selectedPrice}_difference`])!==0); const csv=Papa.unparse(changedRows); const a=document.createElement('a'); a.href=URL.createObjectURL(new Blob([csv],{type:'text/csv'})); a.download='changed_skus.csv'; a.click(); alert('Changed SKUs download completed'); }
   </script>
 </body>
 </html>
