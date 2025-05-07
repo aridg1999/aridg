@@ -84,7 +84,7 @@
       <div id="avg-pct" class="stats">Average % Difference: <span id="avg-pct-value"></span><span id="avg-pct-indicator" class="indicator"></span></div>
       <div id="total-skus" class="stats"></div>
       <div id="changed-skus" class="stats"></div>
-      <div id="download-controls"><button id="btn-csv">Download CSV</button><button id="btn-missing">Download Missing SKUs</button><button id="btn-changed">Download Changed SKUs</button></div>
+      <div id="download-controls" style="display:none; margin-top: 1rem; gap:1rem; justify-content:center;"><button id="btn-csv">Download CSV</button><button id="btn-missing">Download Missing SKUs</button><button id="btn-changed">Download Changed SKUs</button></div>
     </div>
   </div>
 
@@ -100,6 +100,31 @@
 
     document.getElementById('file1').addEventListener('change', e=>handleFile(e.target.files[0],1));
     document.getElementById('file2').addEventListener('change', e=>handleFile(e.target.files[0],2));
+
+    function handleFile(file,idx){
+      if(!file) return;
+      // Update the label to show selected filename
+      const inputEl = document.getElementById('file'+idx);
+      inputEl.parentElement.setAttribute('data-label', file.name);
+      const ext=file.name.split('.').pop().toLowerCase();
+      if(!['csv','xlsx'].includes(ext)){alert('Only CSV or XLSX supported');return;}
+      const reader=new FileReader();
+      reader.onload=e=>{
+        let rows;
+        if(ext==='csv') rows=Papa.parse(e.target.result,{header:true}).data;
+        else{const wb=XLSX.read(e.target.result,{type:'binary'}); const ws=wb.Sheets[wb.SheetNames[0]]; rows=XLSX.utils.sheet_to_json(ws,{defval:''});}
+        if(idx===1) file1Ref={file,header:rows}; else file2Ref={file,header:rows};
+        if(file1Ref&&file2Ref){document.getElementById('config-card').style.display='block';showHeaderSelects();}
+      };
+      ext==='csv'?reader.readAsText(file):reader.readAsBinaryString(file);
+    }
+
+    function showHeaderSelects(){
+      const cols=Object.keys(file1Ref.header[0]||{});
+      document.getElementById('key').innerHTML=cols.map(c=>`<option>${c}</option>`).join('');
+      document.getElementById('price').innerHTML=cols.map(c=>`<option>${c}</option>`).join('');
+    }
+
     document.getElementById('select-supplier-btn').addEventListener('click',selectSupplier);
     document.getElementById('compute-btn').addEventListener('click',computeDifference);
     document.getElementById('btn-csv').addEventListener('click',downloadCSV);
@@ -118,27 +143,6 @@
       selDiv.textContent=`Supplier: ${s}`;
       selDiv.style.display='block';
       document.getElementById('supplier-section').style.display='none';
-    }
-
-    function handleFile(file,idx){
-      if(!file) return;
-      const ext=file.name.split('.').pop().toLowerCase();
-      if(!['csv','xlsx'].includes(ext)){alert('Only CSV or XLSX supported');return;}
-      const reader=new FileReader();
-      reader.onload=e=>{
-        let rows;
-        if(ext==='csv') rows=Papa.parse(e.target.result,{header:true}).data;
-        else{const wb=XLSX.read(e.target.result,{type:'binary'}); const ws=wb.Sheets[wb.SheetNames[0]]; rows=XLSX.utils.sheet_to_json(ws,{defval:''});}
-        if(idx===1) file1Ref={file,header:rows}; else file2Ref={file,header:rows};
-        if(file1Ref&&file2Ref){document.getElementById('config-card').style.display='block';showHeaderSelects();}
-      };
-      ext==='csv'?reader.readAsText(file):reader.readAsBinaryString(file);
-    }
-
-    function showHeaderSelects(){
-      const cols=Object.keys(file1Ref.header[0]||{});
-      document.getElementById('key').innerHTML=cols.map(c=>`<option>${c}</option>`).join('');
-      document.getElementById('price').innerHTML=cols.map(c=>`<option>${c}</option>`).join('');
     }
 
     async function computeDifference(){
