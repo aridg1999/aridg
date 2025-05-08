@@ -33,6 +33,13 @@
       font-size: 2rem;
       color: #000;
       margin: 0;
+      display: inline;
+    }
+    #header .author {
+      font-size: 0.75rem; /* smaller author text */
+      color: #666;
+      margin-left: 1rem;
+      display: inline;
     }
     /* File input styling */
     #file-input {
@@ -72,7 +79,7 @@
       background: #fff;
       border-radius: 0 0 8px 8px;
       box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-      /* allow overflow for full table display */
+      overflow: hidden;
     }
     #results {
       padding: 0.75rem;
@@ -85,10 +92,12 @@
       font-size: 10px;
       border: 1px solid #e0e0e0;
       border-radius: 4px;
+      page-break-inside: avoid;
     }
     .result-table th, .result-table td {
       padding: 0.5rem 0.75rem;
       text-align: left;
+      page-break-inside: avoid;
     }
     .result-table th {
       background: #f0f0f0;
@@ -139,7 +148,7 @@
   <div id="results-card">
     <div id="header">
       <img crossOrigin="anonymous" src="https://aridg1999.github.io/aridg/Default%20KarParts360%20LOGO%20Version%203.png" alt="KarParts360 Logo">
-      <h1>Weekly Digest</h1>
+      <h1>Weekly Digest</h1><span class="author">Created by Ariane S. De Guzman</span>
     </div>
     <div id="results"></div>
   </div>
