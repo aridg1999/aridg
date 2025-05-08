@@ -1,0 +1,296 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Weekly Digest</title>
+  <!-- Libraries -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <style>
+    /* Base styles */
+    body {
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      font-size: 12px;
+      margin: 2rem;
+      background: #fafafa;
+      color: #333;
+    }
+    /* Header with logo and title */
+    #header {
+      display: flex;
+      align-items: center;
+      background: #fff;
+      border-bottom: 4px solid #ccc;
+      padding: 0.75rem;
+      border-radius: 8px 8px 0 0;
+    }
+    #header img {
+      height: 25px;
+      margin-right: 0.75rem;
+    }
+    #header h1 {
+      font-size: 2rem;
+      color: #000;
+      margin: 0;
+    }
+    /* File input styling */
+    #file-input {
+      display: block;
+      padding: 0.4rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+      background: #fff;
+      width: 100%;
+      max-width: 400px;
+      font-size: 12px;
+    }
+    /* Selected files list */
+    #file-list {
+      margin-bottom: 1rem;
+      font-weight: bold;
+      font-size: 12px;
+    }
+    /* Download button */
+    #download-pdf {
+      margin-top: 0.5rem;
+      padding: 0.4rem 0.8rem;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    #download-pdf:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+    /* Results card */
+    #results-card {
+      background: #fff;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      /* allow overflow for full table display */
+    }
+    #results {
+      padding: 0.75rem;
+    }
+    /* Table styling */
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 10px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+    }
+    .result-table th, .result-table td {
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+    }
+    .result-table th {
+      background: #f0f0f0;
+      color: #333;
+      font-weight: 600;
+      border-bottom: 1px solid #ddd;
+    }
+    .result-table tr:nth-child(even) {
+      background: #fafafa;
+    }
+    .service-col { width: 40%; }
+    .file-col { width: 20%; }
+    /* Highlight total row */
+    .total-row td {
+      background: #333;
+      color: #fff;
+      font-weight: bold;
+    }
+    /* Section headings */
+    #results h2 {
+      margin-top: 1rem;
+      font-size: 1rem;
+      color: #333;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 0.25rem;
+    }
+    /* Print-specific styling */
+    @media print {
+      body { margin: 0; }
+      #file-input, #file-list, #download-pdf { display: none; }
+      #results-card { box-shadow: none; border-radius: 0; }
+      .result-table th { display: table-header-group; }
+    }
+  </style>
+</head>
+<body>
+  <!-- File input and download -->
+  <input
+    type="file"
+    id="file-input"
+    accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel"
+    multiple
+  />
+  <div id="file-list"></div>
+  <button id="download-pdf" disabled>Download PDF</button>
+
+  <!-- Content to export -->
+  <div id="results-card">
+    <div id="header">
+      <img crossOrigin="anonymous" src="https://aridg1999.github.io/aridg/Default%20KarParts360%20LOGO%20Version%203.png" alt="KarParts360 Logo">
+      <h1>Weekly Digest</h1>
+    </div>
+    <div id="results"></div>
+  </div>
+
+  <script>
+    const fileInput = document.getElementById('file-input');
+    const fileList = document.getElementById('file-list');
+    const downloadBtn = document.getElementById('download-pdf');
+
+    fileInput.addEventListener('change', handleFiles);
+    downloadBtn.addEventListener('click', () => {
+      const element = document.getElementById('results-card');
+      const opt = {
+        margin:       0.5,
+        filename:     'Weekly_Digest.pdf',
+        image:        { type: 'jpeg', quality: 0.98 },
+        html2canvas:  { scale: 2, useCORS: true },
+        jsPDF:        { unit: 'in', format: 'a4', orientation: 'portrait' }
+      };
+      html2pdf().set(opt).from(element).save();
+    });
+
+    function handleFiles(e) {
+      const files = Array.from(e.target.files);
+      if (!files.length) {
+        fileList.textContent = '';
+        document.getElementById('results').innerHTML = '';
+        downloadBtn.disabled = true;
+        return;
+      }
+      fileList.textContent = 'Selected files: ' + files.map(f => f.name).join(', ');
+      downloadBtn.disabled = false;
+
+      const parsers = files.map(file => new Promise((resolve, reject) => {
+        const name = file.name.toLowerCase();
+        if (name.endsWith('.csv')) {
+          Papa.parse(file, {
+            header: true,
+            skipEmptyLines: true,
+            complete: res => resolve(res.data),
+            error: err => reject(err)
+          });
+        } else {
+          const reader = new FileReader();
+          reader.onload = evt => {
+            const data = new Uint8Array(evt.target.result);
+            const wb = XLSX.read(data, { type: 'array' });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            resolve(XLSX.utils.sheet_to_json(sheet, { defval: '' }));
+          };
+          reader.onerror = err => reject(err);
+          reader.readAsArrayBuffer(file);
+        }
+      }));
+
+      Promise.all(parsers)
+        .then(datasets => processFiles(datasets, files))
+        .catch(err => alert('Error parsing files: ' + err));
+    }
+
+    function processFiles(datasets, files) {
+      const sample = datasets.find(ds => ds.length);
+      if (!sample) { alert('No data in selected files.'); return; }
+      const keys = Object.keys(sample[0]);
+      const findKey = names => keys.find(k => names.includes(k.trim().toLowerCase()));
+      const trackingKey = findKey(['tracking #', 'tracking number']);
+      const feeKey      = findKey(['carrier fee']);
+      const serviceKey  = findKey(['service']);
+      if (!trackingKey || !feeKey || !serviceKey) {
+        alert('Missing required columns in files');
+        return;
+      }
+
+      const serviceList = ['USPS', 'UPS', 'Amazon Shipping Ground', 'FedEx', 'Ontrac'];
+      const fileTotals = [];
+      const fileCounts = [];
+
+      datasets.forEach((rows, idx) => {
+        const seen = new Set();
+        const filtered = rows.filter(row => {
+          const id = String(row[trackingKey]).trim().toLowerCase();
+          if (!id || seen.has(id)) return false;
+          seen.add(id);
+          return true;
+        });
+
+        const blanks = filtered
+          .map((r,i) => !String(r[serviceKey]).trim() ? i+2 : null)
+          .filter(i => i !== null);
+        if (blanks.length) {
+          alert(`Blank “Service” in file ${files[idx].name} row(s): ${blanks.join(', ')}`);
+        }
+
+        const totals = Object.fromEntries(serviceList.map(s => [s, 0]));
+        const counts = Object.fromEntries(serviceList.map(s => [s, 0]));
+
+        filtered.forEach(row => {
+          const fee = parseFloat(String(row[feeKey]).replace(/[^0-9.\-]/g, '')) || 0;
+          serviceList.forEach(svc => {
+            if (String(row[serviceKey]).toLowerCase().includes(svc.toLowerCase())) {
+              totals[svc] += fee;
+              counts[svc] += 1;
+            }
+          });
+        });
+
+        fileTotals.push(totals);
+        fileCounts.push(counts);
+      });
+
+      // Build HTML
+      let html = '<h2>Total Amount</h2>';
+      html += '<table class="result-table"><tr>';
+      html += '<th class="service-col">Service</th>';
+      files.forEach(f => html += `<th class="file-col">${f.name.replace(/\.[^.]+$/, '')}</th>`);
+      html += '</tr>';
+
+      serviceList.forEach(svc => {
+        html += '<tr>';
+        html += `<td>${svc}</td>`;
+        fileTotals.forEach(totals => html += `<td>$${totals[svc].toFixed(2)}</td>`);
+        html += '</tr>';
+      });
+
+      html += '<tr class="total-row"><td>Total</td>';
+      fileTotals.forEach(totals => {
+        const sum = Object.values(totals).reduce((a,b) => a+b, 0);
+        html += `<td>$${sum.toFixed(2)}</td>`;
+      });
+      html += '</tr></table>';
+
+      html += '<h2>Average Amount</h2>';
+      html += '<table class="result-table"><tr>';
+      html += '<th class="service-col">Service</th>';
+      files.forEach(f => html += `<th class="file-col">${f.name.replace(/\.[^.]+$/, '')}</th>`);
+      html += '</tr>';
+
+      serviceList.forEach(svc => {
+        html += '<tr>';
+        html += `<td>${svc}</td>`;
+        fileTotals.forEach((totals, idx) => {
+          const cnt = fileCounts[idx][svc] || 0;
+          const avg = cnt ? totals[svc]/cnt : 0;
+          html += `<td>$${avg.toFixed(2)}</td>`;
+        });
+        html += '</tr>';
+      });
+      html += '</table>';
+
+      document.getElementById('results').innerHTML = html;
+    }
+  </script>
+</body>
+</html>
