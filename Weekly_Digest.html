@@ -134,10 +134,10 @@
         countsArr.push(cnt);
       });
       const colCount = files.length + 1;
-      const colWidth = (100/colCount).toFixed(2) + '%';
+      const colWidth = `${(100/colCount).toFixed(2)}%`;
       let html = '<h2>Total Amount</h2><table class="result-table"><tr>';
-      html += `<th style="width:${colWidth}">Service</th>`;
-      files.forEach(f => { html += `<th style="width:${colWidth}">${f.name.replace(/\.[^.]+$/,'')}</th>`; });
+      html += `<th contenteditable="true" style="width:${colWidth}">Service</th>`;
+      files.forEach(f => { html += `<th contenteditable="true" style="width:${colWidth}">${f.name.replace(/\.[^.]+$/,'')}</th>`; });
       html += '</tr>';
       serviceList.forEach(s => {
         html += '<tr>';
@@ -149,8 +149,8 @@
       totalsArr.forEach(t => { const sum = Object.values(t).reduce((a,b)=>a+b,0); html += `<td>$${sum.toFixed(2)}</td>`; });
       html += '</tr></table>';
       html += '<h2>Average Amount</h2><table class="result-table"><tr>';
-      html += `<th style="width:${colWidth}">Service</th>`;
-      files.forEach(f => { html += `<th style="width:${colWidth}">${f.name.replace(/\.[^.]+$/,'')}</th>`; });
+      html += `<th contenteditable="true" style="width:${colWidth}">Service</th>`;
+      files.forEach(f => { html += `<th contenteditable="true" style="width:${colWidth}">${f.name.replace(/\.[^.]+$/,'')}</th>`; });
       html += '</tr>';
       serviceList.forEach(s => {
         html += '<tr>';
