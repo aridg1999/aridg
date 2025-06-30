@@ -1,0 +1,186 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>XLOOKUP Merge Tool</title>
+    <!-- Bootstrap CSS -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <!-- SheetJS for Excel/CSV parsing -->
+    <script src="https://cdn.jsdelivr.net/npm/xlsx/dist/xlsx.full.min.js"></script>
+    <!-- FileSaver for exporting files -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/FileSaver.js/2.0.5/FileSaver.min.js"></script>
+</head>
+<body>
+<div class="container my-5">
+    <h2 class="mb-4 text-center">XLOOKUP Merge Tool</h2>
+    <div class="row mb-3">
+        <div class="col-md-6">
+            <label for="file1" class="form-label">Upload File 1</label>
+            <input type="file" id="file1" class="form-control" accept=".xlsx,.xls,.csv">
+        </div>
+        <div class="col-md-6">
+            <label for="file2" class="form-label">Upload File 2</label>
+            <input type="file" id="file2" class="form-control" accept=".xlsx,.xls,.csv">
+        </div>
+    </div>
+
+    <div id="options" class="card p-4 mb-4" style="display:none;">
+        <div class="row g-3">
+            <div class="col-md-4">
+                <label for="key1" class="form-label">Key Column (File 1)</label>
+                <select id="key1" class="form-select"></select>
+            </div>
+            <div class="col-md-4">
+                <label for="key2" class="form-label">Key Column (File 2)</label>
+                <select id="key2" class="form-select"></select>
+            </div>
+            <div class="col-md-4 d-flex align-items-end">
+                <button id="loadColumns" class="btn btn-primary w-100">Load Columns</button>
+            </div>
+        </div>
+        <div id="columnSelectors" style="display:none;" class="mt-4">
+            <div class="row g-3">
+                <div class="col-md-6">
+                    <label class="form-label">Select Columns to Retain (File 1)</label>
+                    <select id="cols1" class="form-select" multiple></select>
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Select Columns to Retain (File 2)</label>
+                    <select id="cols2" class="form-select" multiple></select>
+                </div>
+            </div>
+            <div class="row mt-4">
+                <div class="col">
+                    <button id="mergeBtn" class="btn btn-success">Merge &amp; Show Result</button>
+                </div>
+                <div class="col text-end">
+                    <button id="exportCsv" class="btn btn-outline-secondary me-2">Export CSV</button>
+                    <button id="exportXlsx" class="btn btn-outline-secondary">Export Excel</button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div id="result"></div>
+</div>
+
+<script>
+// Hold parsed data and headers
+let data1 = [], data2 = [], headers1 = [], headers2 = [];
+
+function readFile(fileInput, callback) {
+    const file = fileInput.files[0];
+    const reader = new FileReader();
+    // Excel/CSV reading
+    if (file.name.toLowerCase().endsWith('.csv')) {
+        reader.onload = e => {
+            const text = e.target.result;
+            const ws = XLSX.utils.csv_to_sheet(text);
+            callback(XLSX.utils.sheet_to_json(ws, {defval: ''}));
+        };
+        reader.readAsText(file);
+    } else {
+        reader.onload = e => {
+            const data = new Uint8Array(e.target.result);
+            const wb = XLSX.read(data, {type: 'array'});
+            const ws = wb.Sheets[wb.SheetNames[0]];
+            callback(XLSX.utils.sheet_to_json(ws, {defval: ''}));
+        };
+        reader.readAsArrayBuffer(file);
+    }
+}
+
+// Monitor file inputs
+['file1','file2'].forEach(id => {
+    document.getElementById(id).addEventListener('change', () => {
+        if (document.getElementById('file1').files.length && document.getElementById('file2').files.length) {
+            filesLoaded = 0;
+            readFile(document.getElementById('file1'), json => {
+                data1 = json;
+                headers1 = Object.keys(json[0] || {});
+                populateSelect('key1', headers1);
+                populateSelect('cols1', headers1);
+                showOptionsIfReady();
+            });
+            readFile(document.getElementById('file2'), json => {
+                data2 = json;
+                headers2 = Object.keys(json[0] || {});
+                populateSelect('key2', headers2);
+                populateSelect('cols2', headers2);
+                showOptionsIfReady();
+            });
+        }
+    });
+});
+
+let filesLoaded = 0;
+function showOptionsIfReady() {
+    filesLoaded++;
+    if (filesLoaded === 2) document.getElementById('options').style.display = 'block';
+}
+
+function populateSelect(id, items) {
+    const sel = document.getElementById(id);
+    sel.innerHTML = '';
+    items.forEach(item => sel.appendChild(new Option(item, item)));
+}
+
+document.getElementById('loadColumns').onclick = () => {
+    document.getElementById('columnSelectors').style.display = 'block';
+};
+
+document.getElementById('mergeBtn').onclick = () => {
+    const key1 = document.getElementById('key1').value;
+    const key2 = document.getElementById('key2').value;
+    const cols1 = Array.from(document.getElementById('cols1').selectedOptions).map(o => o.value);
+    const cols2 = Array.from(document.getElementById('cols2').selectedOptions).map(o => o.value);
+    const map2 = new Map(data2.map(r => [r[key2], r]));
+    const result = data1.map(r1 => {
+        const r2 = map2.get(r1[key1]) || {};
+        const out = {};
+        cols1.forEach(c => out[c] = r1[c]);
+        cols2.forEach(c => out[c] = r2[c] || '');
+        return out;
+    });
+    displayResult(result);
+    window.currentResult = result;
+};
+
+function displayResult(data) {
+    const con = document.getElementById('result');
+    con.innerHTML = '';
+    if (!data.length) { con.innerHTML = '<p>No results found.</p>'; return; }
+    const table = document.createElement('table');
+    table.className = 'table table-striped';
+    const thead = table.createTHead();
+    const thr = thead.insertRow();
+    Object.keys(data[0]).forEach(h => thr.appendChild(Object.assign(document.createElement('th'), {textContent: h})));
+    const tbody = table.createTBody();
+    data.forEach(row => {
+        const tr = tbody.insertRow();
+        Object.values(row).forEach(val => tr.appendChild(Object.assign(document.createElement('td'), {textContent: val})));
+    });
+    con.appendChild(table);
+}
+
+// Export handlers
+
+function exportSheet(type) {
+    const ws = XLSX.utils.json_to_sheet(window.currentResult || []);
+    const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Result');
+    if (type === 'csv') {
+        const csv = XLSX.utils.sheet_to_csv(ws);
+        saveAs(new Blob([csv], {type: 'text/csv;charset=utf-8'}), 'merge_result.csv');
+    } else {
+        const wbout = XLSX.write(wb, {bookType: 'xlsx', type: 'array'});
+        saveAs(new Blob([wbout], {type: 'application/octet-stream'}), 'merge_result.xlsx');
+    }
+}
+
+document.getElementById('exportCsv').onclick = () => exportSheet('csv');
+document.getElementById('exportXlsx').onclick = () => exportSheet('xlsx');
+</script>
+</body>
+</html>
