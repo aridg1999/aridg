@@ -7,8 +7,12 @@
   <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/PapaParse/5.3.2/papaparse.min.js"></script>
   <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.0/Sortable.min.js"></script>
   <style>
-    /* Base styles */
+    .sortable-ghost {
+      opacity: 0.4;
+      background: #d3e3fd;
+    }
     body {
       font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
       font-size: 12px;
@@ -16,7 +20,6 @@
       background: #fafafa;
       color: #333;
     }
-    /* Header */
     #header {
       display: flex;
       align-items: center;
@@ -28,40 +31,86 @@
     #header img { height: 25px; margin-right: 0.75rem; }
     #header h1 { font-size: 2rem; color: #000; margin: 0; }
     #header .author { font-size: 0.75rem; color: #666; margin-left: 1rem; }
-    /* File input */
-    #file-input { display: block; padding: 0.4rem; border: 1px solid #ccc; border-radius: 4px; margin-bottom: 0.5rem; background: #fff; width: 100%; max-width: 400px; font-size: 12px; }
+    #file-input, #toggle-reorder {
+      display: block;
+      padding: 0.4rem;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      margin-bottom: 0.5rem;
+      background: #fff;
+      width: 100%;
+      max-width: 400px;
+      font-size: 12px;
+    }
     #file-list { margin-bottom: 1rem; font-weight: bold; font-size: 12px; }
-    /* Download button */
-    #download-pdf { margin-top: 0.5rem; padding: 0.4rem 0.8rem; background: #007bff; color: #fff; border: none; border-radius: 4px; cursor: pointer; font-size: 12px; }
-    #download-pdf:disabled { background: #aaa; cursor: not-allowed; }
-    /* Results card */
-    #results-card { background: #fff; border-radius: 0 0 8px 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); overflow: hidden; }
+    #download-pdf {
+      margin-top: 0.5rem;
+      padding: 0.4rem 0.8rem;
+      background: #007bff;
+      color: #fff;
+      border: none;
+      border-radius: 4px;
+      cursor: pointer;
+      font-size: 12px;
+    }
+    #download-pdf:disabled, #toggle-reorder:disabled {
+      background: #aaa;
+      cursor: not-allowed;
+    }
+    #results-card {
+      background: #fff;
+      border-radius: 0 0 8px 8px;
+      box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+      overflow: hidden;
+    }
     #results { padding: 0.75rem; }
-    /* Table styling */
-    .result-table { width: 100%; border-collapse: collapse; margin-top: 1rem; font-size: 10px; border: 1px solid #e0e0e0; border-radius: 4px; }
-    .result-table th, .result-table td { padding: 0.5rem 0.75rem; text-align: left; }
-    .result-table th { background: #f0f0f0; color: #333; font-weight: 600; border-bottom: 1px solid #ddd; }
+    .result-table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 10px;
+      border: 1px solid #e0e0e0;
+      border-radius: 4px;
+    }
+    .result-table th, .result-table td {
+      padding: 0.5rem 0.75rem;
+      text-align: left;
+    }
+    .result-table th {
+      background: #f0f0f0;
+      color: #333;
+      font-weight: 600;
+      border-bottom: 1px solid #ddd;
+    }
     .result-table tr:nth-child(even) { background: #fafafa; }
-    /* Highlight total row */
-    .total-row td { background: #333; color: #fff; font-weight: bold; }
-    /* Section headings */
-    #results h2 { margin-top: 1rem; font-size: 1rem; color: #333; border-bottom: 1px solid #ccc; padding-bottom: 0.25rem; }
-    /* Print */
+    .total-row td {
+      background: #333;
+      color: #fff;
+      font-weight: bold;
+    }
+    #results h2 {
+      margin-top: 1rem;
+      font-size: 1rem;
+      color: #333;
+      border-bottom: 1px solid #ccc;
+      padding-bottom: 0.25rem;
+    }
     @media print {
       body { margin: 0; }
-      #file-input, #file-list, #download-pdf { display: none; }
+      #file-input, #file-list, #download-pdf, #toggle-reorder { display: none; }
       #results-card { box-shadow: none; border-radius: 0; }
       .result-table th { display: table-header-group; }
     }
   </style>
 </head>
 <body>
-  <!-- File input and download -->
+  <!-- Controls -->
   <input type="file" id="file-input" accept=".csv, application/vnd.openxmlformats-officedocument.spreadsheetml.sheet, application/vnd.ms-excel" multiple />
+  <button id="toggle-reorder" disabled>Enable Reorder Mode</button>
   <div id="file-list"></div>
   <button id="download-pdf" disabled>Download PDF</button>
 
-  <!-- Content to export -->
+  <!-- Content -->
   <div id="results-card">
     <div id="header">
       <img crossOrigin="anonymous" src="https://aridg1999.github.io/aridg/Default%20KarParts360%20LOGO%20Version%203.png" alt="KarParts360 Logo">
@@ -70,24 +119,49 @@
     <div id="results"></div>
   </div>
 
+  <!-- Logic -->
   <script>
     const fileInput = document.getElementById('file-input');
     const fileList = document.getElementById('file-list');
     const downloadBtn = document.getElementById('download-pdf');
+    const reorderBtn = document.getElementById('toggle-reorder');
+    let reorderMode = false;
+
     fileInput.addEventListener('change', handleFiles);
     downloadBtn.addEventListener('click', () => {
       html2pdf().set({margin:0.5,filename:'Weekly_Digest.pdf',image:{type:'jpeg',quality:0.98},html2canvas:{scale:2,useCORS:true},jsPDF:{unit:'in',format:'a4',orientation:'portrait'}}).from(document.getElementById('results-card')).save();
     });
+
+    reorderBtn.addEventListener('click', () => {
+      reorderMode = !reorderMode;
+      reorderBtn.textContent = reorderMode ? 'Disable Reorder Mode' : 'Enable Reorder Mode';
+      document.querySelectorAll('.result-table').forEach(table => {
+        const ths = table.querySelectorAll('thead th');
+        ths.forEach(th => th.setAttribute('contenteditable', reorderMode ? 'false' : 'true'));
+        if (reorderMode) {
+          makeColumnsDraggable(table);
+        } else {
+          if (table._sortable) {
+            table._sortable.destroy();
+            table._sortable = null;
+          }
+        }
+      });
+    });
+
     function handleFiles(e) {
       const files = Array.from(e.target.files);
       if (!files.length) {
         fileList.textContent = '';
         document.getElementById('results').innerHTML = '';
         downloadBtn.disabled = true;
+        reorderBtn.disabled = true;
         return;
       }
       fileList.textContent = 'Selected files: ' + files.map(f => f.name).join(', ');
       downloadBtn.disabled = false;
+      reorderBtn.disabled = false;
+
       Promise.all(files.map(f => new Promise((res, rej) => {
         const n = f.name.toLowerCase();
         if (n.endsWith('.csv')) {
@@ -105,6 +179,7 @@
         }
       }))).then(datasets => processFiles(datasets, files)).catch(err => alert('Error parsing files: ' + err));
     }
+
     function processFiles(datasets, files) {
       const sample = datasets.find(d => d.length);
       if (!sample) { alert('No data.'); return; }
@@ -113,8 +188,8 @@
       const tKey = fk(['tracking #','tracking number']), fKey = fk(['carrier fee']), sKey = fk(['service']);
       if (!tKey || !fKey || !sKey) { alert('Missing columns'); return; }
       const serviceList = ['USPS','UPS','Amazon Shipping Ground','FedEx','Ontrac'];
-      const totalsArr = [];
-      const countsArr = [];
+      const totalsArr = [], countsArr = [];
+
       datasets.forEach(rows => {
         const seen = new Set();
         const filtered = rows.filter(r => {
@@ -123,43 +198,81 @@
           seen.add(id);
           return true;
         });
-        const tot = Object.fromEntries(serviceList.map(s => [s,0]));
-        const cnt = Object.fromEntries(serviceList.map(s => [s,0]));
+        const tot = Object.fromEntries(serviceList.map(s => [s, 0]));
+        const cnt = Object.fromEntries(serviceList.map(s => [s, 0]));
         filtered.forEach(r => {
           const fee = parseFloat(String(r[fKey]).replace(/[^0-9.\-]/g,''))||0;
           const cell = String(r[sKey]).toLowerCase();
-          serviceList.forEach(s => { if(cell.includes(s.toLowerCase())){ tot[s]+=fee; cnt[s]++; }});
+          serviceList.forEach(s => { if(cell.includes(s.toLowerCase())){ tot[s] += fee; cnt[s]++; }});
         });
         totalsArr.push(tot);
         countsArr.push(cnt);
       });
+
       const colCount = files.length + 1;
       const colWidth = `${(100/colCount).toFixed(2)}%`;
-      let html = '<h2>Total Amount</h2><table class="result-table"><tr>';
+      let html = '<h2>Total Amount</h2><table class="result-table"><thead><tr>';
       html += `<th contenteditable="true" style="width:${colWidth}">Service</th>`;
       files.forEach(f => { html += `<th contenteditable="true" style="width:${colWidth}">${f.name.replace(/\.[^.]+$/,'')}</th>`; });
-      html += '</tr>';
+      html += '</tr></thead><tbody>';
       serviceList.forEach(s => {
-        html += '<tr>';
-        html += `<td>${s}</td>`;
+        html += '<tr><td>' + s + '</td>';
         totalsArr.forEach(t => { html += `<td>$${t[s].toFixed(2)}</td>`; });
         html += '</tr>';
       });
       html += '<tr class="total-row"><td>Total</td>';
-      totalsArr.forEach(t => { const sum = Object.values(t).reduce((a,b)=>a+b,0); html += `<td>$${sum.toFixed(2)}</td>`; });
-      html += '</tr></table>';
-      html += '<h2>Average Amount</h2><table class="result-table"><tr>';
+      totalsArr.forEach(t => {
+        const sum = Object.values(t).reduce((a,b) => a+b, 0);
+        html += `<td>$${sum.toFixed(2)}</td>`;
+      });
+      html += '</tr></tbody></table>';
+
+      html += '<h2>Average Amount</h2><table class="result-table"><thead><tr>';
       html += `<th contenteditable="true" style="width:${colWidth}">Service</th>`;
-      files.forEach(f => { html += `<th contenteditable="true" style="width:${colWidth}">${f.name.replace(/\.[^.]+$/,'')}</th>`; });
-      html += '</tr>';
+      files.forEach(f => {
+        html += `<th contenteditable="true" style="width:${colWidth}">${f.name.replace(/\.[^.]+$/,'')}</th>`;
+      });
+      html += '</tr></thead><tbody>';
       serviceList.forEach(s => {
-        html += '<tr>';
-        html += `<td>${s}</td>`;
-        totalsArr.forEach((t,i) => { const c = countsArr[i][s]||0; const avg = c? t[s]/c:0; html += `<td>$${avg.toFixed(2)}</td>`; });
+        html += '<tr><td>' + s + '</td>';
+        totalsArr.forEach((t, i) => {
+          const c = countsArr[i][s] || 0;
+          const avg = c ? t[s] / c : 0;
+          html += `<td>$${avg.toFixed(2)}</td>`;
+        });
         html += '</tr>';
       });
-      html += '</table>';
+      html += '</tbody></table>';
+
       document.getElementById('results').innerHTML = html;
+    }
+
+    function makeColumnsDraggable(table) {
+      const headerRow = table.querySelector('thead tr');
+      const bodyRows = Array.from(table.querySelectorAll('tbody tr'));
+
+      if (table._sortable) return;
+
+      const sortable = Sortable.create(headerRow, {
+        animation: 150,
+        ghostClass: 'sortable-ghost',
+        onEnd: (evt) => {
+          const from = evt.oldIndex;
+          const to = evt.newIndex;
+
+          if (from === to || from < 0 || to < 0) return;
+
+          bodyRows.forEach(row => {
+            const cells = Array.from(row.children);
+            const moved = cells[from];
+            if (!moved) return;
+            row.removeChild(moved);
+            row.insertBefore(moved, cells[to > from ? to + 1 : to]);
+          });
+        }
+      });
+
+      table._sortable = sortable;
     }
   </script>
 </body>
