@@ -15,6 +15,12 @@
 <body>
 <div class="container my-5">
     <h2 class="mb-4 text-center">XLOOKUP Merge Tool</h2>
+
+    <!-- Progress Bar -->
+    <div id="progressContainer" class="progress mb-3" style="height: 25px; display: none;">
+        <div id="progressBar" class="progress-bar progress-bar-striped progress-bar-animated" role="progressbar" style="width: 0%"></div>
+    </div>
+
     <div class="row mb-3">
         <div class="col-md-6">
             <label for="file1" class="form-label">Upload File 1</label>
@@ -44,11 +50,11 @@
             <div class="row g-3">
                 <div class="col-md-6">
                     <label class="form-label">Select Columns to Retain (File 1)</label>
-                    <select id="cols1" class="form-select" multiple></select>
+                    <div id="cols1Container"></div>
                 </div>
                 <div class="col-md-6">
                     <label class="form-label">Select Columns to Retain (File 2)</label>
-                    <select id="cols2" class="form-select" multiple></select>
+                    <div id="cols2Container"></div>
                 </div>
             </div>
             <div class="row mt-4">
@@ -56,8 +62,8 @@
                     <button id="mergeBtn" class="btn btn-success">Merge &amp; Show Result</button>
                 </div>
                 <div class="col text-end">
-                    <button id="exportCsv" class="btn btn-outline-secondary me-2">Export CSV</button>
-                    <button id="exportXlsx" class="btn btn-outline-secondary">Export Excel</button>
+                    <button id="exportCsv" class="btn btn-outline-secondary me-2" disabled>Export CSV</button>
+                    <button id="exportXlsx" class="btn btn-outline-secondary" disabled>Export Excel</button>
                 </div>
             </div>
         </div>
@@ -67,120 +73,120 @@
 </div>
 
 <script>
-// Hold parsed data and headers
 let data1 = [], data2 = [], headers1 = [], headers2 = [];
+let currentResult = [];
+let mergeWorker;
 
+// Initialize Web Worker for merging
+function initWorker() {
+    const code = `self.onmessage = function(e) {
+        const { data1, data2, key1, key2, cols1, cols2 } = e.data;
+        const map2 = new Map(data2.map(r => [r[key2], r]));
+        const result = data1.map(r1 => {
+            const r2 = map2.get(r1[key1]) || {};
+            const out = {};
+            cols1.forEach(c => out[c] = r1[c]);
+            cols2.forEach(c => out[c] = r2[c] || '');
+            return out;
+        });
+        postMessage(result);
+    };`;
+    const blob = new Blob([code], { type: 'application/javascript' });
+    mergeWorker = new Worker(URL.createObjectURL(blob));
+    mergeWorker.onerror = e => { console.error('Worker error:', e.message); alert('An error occurred during merging.'); hideProgress(); };
+    mergeWorker.onmessage = e => {
+        currentResult = e.data;
+        displayResult(currentResult);
+        hideProgress();
+        document.getElementById('exportCsv').disabled = false;
+        document.getElementById('exportXlsx').disabled = false;
+    };
+}
+initWorker();
+
+function showProgress() { document.getElementById('progressContainer').style.display = 'block'; }
+function hideProgress() {
+    const container = document.getElementById('progressContainer');
+    const bar = document.getElementById('progressBar');
+    container.style.display = 'none'; bar.style.width = '0%';
+}
+
+// Populate select for key columns
+function populateSelect(id, items) {
+    document.getElementById(id).innerHTML = items.map(i => `<option value="${i}">${i}</option>`).join('');
+}
+
+// Populate checkboxes for column retention
+function populateCheckboxes(containerId, items) {
+    const container = document.getElementById(containerId);
+    container.innerHTML = items.map(item => `
+        <div class="form-check">
+            <input class="form-check-input" type="checkbox" value="${item}" id="${containerId}-${item}">
+            <label class="form-check-label" for="${containerId}-${item}">${item}</label>
+        </div>
+    `).join('');
+}
+
+// Read file: unified parsing
 function readFile(fileInput, callback) {
     const file = fileInput.files[0];
     const reader = new FileReader();
-    // Excel/CSV reading
-    if (file.name.toLowerCase().endsWith('.csv')) {
-        reader.onload = e => {
-            const text = e.target.result;
-            const ws = XLSX.utils.csv_to_sheet(text);
-            callback(XLSX.utils.sheet_to_json(ws, {defval: ''}));
-        };
-        reader.readAsText(file);
-    } else {
-        reader.onload = e => {
-            const data = new Uint8Array(e.target.result);
-            const wb = XLSX.read(data, {type: 'array'});
-            const ws = wb.Sheets[wb.SheetNames[0]];
-            callback(XLSX.utils.sheet_to_json(ws, {defval: ''}));
-        };
-        reader.readAsArrayBuffer(file);
-    }
+    const isCSV = file.name.toLowerCase().endsWith('.csv');
+    reader.onload = e => {
+        try {
+            let wb;
+            if (isCSV) wb = XLSX.read(e.target.result, { type: 'string' });
+            else wb = XLSX.read(new Uint8Array(e.target.result), { type: 'array' });
+            const sheet = wb.Sheets[wb.SheetNames[0]];
+            callback(XLSX.utils.sheet_to_json(sheet, { defval: '' }));
+        } catch (err) { console.error(err); alert('Failed to parse ' + file.name); }
+    };
+    isCSV ? reader.readAsText(file) : reader.readAsArrayBuffer(file);
 }
 
 // Monitor file inputs
-['file1','file2'].forEach(id => {
-    document.getElementById(id).addEventListener('change', () => {
-        if (document.getElementById('file1').files.length && document.getElementById('file2').files.length) {
-            filesLoaded = 0;
-            readFile(document.getElementById('file1'), json => {
-                data1 = json;
-                headers1 = Object.keys(json[0] || {});
-                populateSelect('key1', headers1);
-                populateSelect('cols1', headers1);
-                showOptionsIfReady();
-            });
-            readFile(document.getElementById('file2'), json => {
-                data2 = json;
-                headers2 = Object.keys(json[0] || {});
-                populateSelect('key2', headers2);
-                populateSelect('cols2', headers2);
-                showOptionsIfReady();
-            });
-        }
-    });
-});
+['file1','file2'].forEach(id => document.getElementById(id).addEventListener('change', () => {
+    const f1 = document.getElementById('file1').files[0];
+    const f2 = document.getElementById('file2').files[0];
+    if (f1 && f2) {
+        let loaded = 0;
+        readFile(document.getElementById('file1'), json => { data1 = json; headers1 = Object.keys(json[0]||{}); populateSelect('key1', headers1); populateCheckboxes('cols1Container', headers1); if (++loaded===2) document.getElementById('options').style.display='block'; });
+        readFile(document.getElementById('file2'), json => { data2 = json; headers2 = Object.keys(json[0]||{}); populateSelect('key2', headers2); populateCheckboxes('cols2Container', headers2); if (++loaded===2) document.getElementById('options').style.display='block'; });
+    }
+}));
 
-let filesLoaded = 0;
-function showOptionsIfReady() {
-    filesLoaded++;
-    if (filesLoaded === 2) document.getElementById('options').style.display = 'block';
-}
-
-function populateSelect(id, items) {
-    const sel = document.getElementById(id);
-    sel.innerHTML = '';
-    items.forEach(item => sel.appendChild(new Option(item, item)));
-}
-
-document.getElementById('loadColumns').onclick = () => {
-    document.getElementById('columnSelectors').style.display = 'block';
-};
+document.getElementById('loadColumns').onclick = () => document.getElementById('columnSelectors').style.display = 'block';
 
 document.getElementById('mergeBtn').onclick = () => {
     const key1 = document.getElementById('key1').value;
     const key2 = document.getElementById('key2').value;
-    const cols1 = Array.from(document.getElementById('cols1').selectedOptions).map(o => o.value);
-    const cols2 = Array.from(document.getElementById('cols2').selectedOptions).map(o => o.value);
-    const map2 = new Map(data2.map(r => [r[key2], r]));
-    const result = data1.map(r1 => {
-        const r2 = map2.get(r1[key1]) || {};
-        const out = {};
-        cols1.forEach(c => out[c] = r1[c]);
-        cols2.forEach(c => out[c] = r2[c] || '');
-        return out;
-    });
-    displayResult(result);
-    window.currentResult = result;
+    let cols1 = Array.from(document.querySelectorAll('#cols1Container input:checked')).map(cb => cb.value);
+    let cols2 = Array.from(document.querySelectorAll('#cols2Container input:checked')).map(cb => cb.value);
+    if (!cols1.length) cols1 = [...headers1];
+    if (!cols2.length) cols2 = [...headers2];
+    showProgress();
+    mergeWorker.postMessage({ data1, data2, key1, key2, cols1, cols2 });
 };
 
 function displayResult(data) {
     const con = document.getElementById('result');
-    con.innerHTML = '';
-    if (!data.length) { con.innerHTML = '<p>No results found.</p>'; return; }
-    const table = document.createElement('table');
-    table.className = 'table table-striped';
-    const thead = table.createTHead();
-    const thr = thead.insertRow();
-    Object.keys(data[0]).forEach(h => thr.appendChild(Object.assign(document.createElement('th'), {textContent: h})));
-    const tbody = table.createTBody();
-    data.forEach(row => {
-        const tr = tbody.insertRow();
-        Object.values(row).forEach(val => tr.appendChild(Object.assign(document.createElement('td'), {textContent: val})));
-    });
-    con.appendChild(table);
+    if (!data.length) return con.innerHTML = '<p>No results.</p>';
+    const cols = Object.keys(data[0]);
+    let html = '<table class="table table-striped"><thead><tr>' + cols.map(c=>`<th>${c}</th>`).join('') + '</tr></thead><tbody>';
+    data.forEach(r=> html+='<tr>'+cols.map(c=>`<td>${r[c]}</td>`).join('')+'</tr>');
+    html+='</tbody></table>';
+    con.innerHTML = html;
 }
 
-// Export handlers
-
+// Export
 function exportSheet(type) {
-    const ws = XLSX.utils.json_to_sheet(window.currentResult || []);
+    const ws = XLSX.utils.json_to_sheet(currentResult);
     const wb = XLSX.utils.book_new(); XLSX.utils.book_append_sheet(wb, ws, 'Result');
-    if (type === 'csv') {
-        const csv = XLSX.utils.sheet_to_csv(ws);
-        saveAs(new Blob([csv], {type: 'text/csv;charset=utf-8'}), 'merge_result.csv');
-    } else {
-        const wbout = XLSX.write(wb, {bookType: 'xlsx', type: 'array'});
-        saveAs(new Blob([wbout], {type: 'application/octet-stream'}), 'merge_result.xlsx');
-    }
+    const data = type==='csv'? XLSX.utils.sheet_to_csv(ws): XLSX.write(wb,{bookType:'xlsx',type:'array'});
+    saveAs(new Blob([data]), `merge_result.${type==='csv'?'csv':'xlsx'}`);
 }
 
-document.getElementById('exportCsv').onclick = () => exportSheet('csv');
-document.getElementById('exportXlsx').onclick = () => exportSheet('xlsx');
+['exportCsv','exportXlsx'].forEach(id=> document.getElementById(id).onclick=()=>exportSheet(id==='exportCsv'?'csv':'xlsx'));
 </script>
 </body>
 </html>
