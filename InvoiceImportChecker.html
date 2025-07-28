@@ -1,0 +1,154 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta http-equiv="X-UA-Compatible" content="IE=edge" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Invoice Import Checker</title>
+  <!-- Google Font: Poppins -->
+  <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700&display=swap" rel="stylesheet" />
+  <!-- CSV parser -->
+  <script src="https://cdn.jsdelivr.net/npm/papaparse@5.3.2/papaparse.min.js"></script>
+  <!-- Excel parser (SheetJS) -->
+  <script src="https://cdn.sheetjs.com/xlsx-latest/package/dist/xlsx.full.min.js"></script>
+  <style>
+    body { font-family: 'Poppins', sans-serif; margin: 20px; }
+    h1 { text-align: center; margin-bottom: 20px; }
+    .upload-row, .controls-row { display: flex; gap: 20px; justify-content: center; margin-bottom: 20px; }
+    .upload-card, .control-card { width: 300px; background: #f5f5f5; padding: 15px; border-radius: 6px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+    select, input[type=file] { width: 100%; padding: 8px; margin-top: 10px; border: 1px solid #ccc; border-radius: 4px; }
+    button, a.action-btn {
+      display: block;
+      width: 100%;
+      font-weight: 600;
+      border: none;
+      background: #ED9B3B;
+      color: #fff;
+      border-radius: 4px;
+      padding: 12px 0;
+      margin-top: 15px;
+      cursor: pointer;
+      text-decoration: none;
+      text-align: center;
+      font-size: 1rem;
+    }
+    button:hover, a.action-btn:hover { background: #FAD96C; }
+    a.action-btn { display: none; }
+    table { border-collapse: collapse; width: 100%; margin-top: 20px; }
+    th, td { border: 1px solid #ccc; padding: 8px 12px; text-align: left; }
+  </style>
+</head>
+<body>
+  <h1>Invoice Import Checker</h1>
+  <div class="upload-row">
+    <div class="upload-card">
+      <label>Upload Base File<br><input type="file" id="fileBase" accept=".csv,.xls,.xlsx"></label>
+    </div>
+    <div class="upload-card">
+      <label>Upload Lookup File<br><input type="file" id="fileLookup" accept=".csv,.xls,.xlsx"></label>
+    </div>
+  </div>
+  <div id="controls" class="controls-row" style="display:none;">
+    <div class="control-card">
+      <label>Key Column in Base:<br><select id="keyBase"></select></label>
+      <label>Key Column in Lookup:<br><select id="keyLookup"></select></label>
+      <button id="seeResultsBtn">See Results</button>
+      <a id="downloadCsv" class="action-btn">Download CSV</a>
+      <a id="downloadXlsx" class="action-btn">Download Excel</a>
+    </div>
+  </div>
+  <div id="result"></div>
+
+  <script>
+    let dataBase = [], dataLookup = [], headersBase = [], headersLookup = [];
+
+    function readCSV(file, cb) {
+      Papa.parse(file, { header: true, skipEmptyLines: true, complete: r => cb(r.data, r.meta.fields) });
+    }
+    function readExcel(file, cb) {
+      const reader = new FileReader();
+      reader.onload = e => {
+        const arr = new Uint8Array(e.target.result);
+        const wb = XLSX.read(arr, { type: 'array' });
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(ws, { defval: '' });
+        cb(json, json.length ? Object.keys(json[0]) : []);
+      };
+      reader.readAsArrayBuffer(file);
+    }
+    function handleFile(inputId, assignData, assignHeaders) {
+      const f = document.getElementById(inputId).files[0];
+      if (!f) return;
+      const ext = f.name.split('.').pop().toLowerCase();
+      const cb = (d, h) => { assignData(d); assignHeaders(h); if (dataBase.length && dataLookup.length) initControls(); };
+      if (ext === 'csv') readCSV(f, cb);
+      else readExcel(f, cb);
+    }
+
+    document.getElementById('fileBase').addEventListener('change', () => handleFile('fileBase', d => dataBase = d, h => headersBase = h));
+    document.getElementById('fileLookup').addEventListener('change', () => handleFile('fileLookup', d => dataLookup = d, h => headersLookup = h));
+
+    function populateSelect(id, headers) {
+      const sel = document.getElementById(id);
+      sel.innerHTML = headers.map(h => `<option value="${h}">${h}</option>`).join('');
+    }
+
+    function initControls() {
+      populateSelect('keyBase', headersBase);
+      populateSelect('keyLookup', headersLookup);
+      document.getElementById('controls').style.display = 'flex';
+    }
+
+    function findMissing() {
+      const keyB = document.getElementById('keyBase').value;
+      const keyL = document.getElementById('keyLookup').value;
+      const baseSet = new Set(dataBase.map(r => r[keyB]));
+      const missing = dataLookup.filter(r => !baseSet.has(r[keyL]));
+
+      displayResults(missing);
+      prepareDownloads(missing);
+    }
+
+    document.getElementById('seeResultsBtn').addEventListener('click', findMissing);
+
+    function displayResults(rows) {
+      const result = document.getElementById('result');
+      result.innerHTML = '';
+      if (!rows.length) { result.textContent = 'No missing items found.'; return; }
+      const table = document.createElement('table');
+      const hdrRow = document.createElement('tr');
+      Object.keys(rows[0]).forEach(col => {
+        const th = document.createElement('th'); th.textContent = col; hdrRow.appendChild(th);
+      });
+      table.appendChild(hdrRow);
+      rows.forEach(r => {
+        const tr = document.createElement('tr');
+        Object.keys(r).forEach(col => {
+          const td = document.createElement('td'); td.textContent = r[col]; tr.appendChild(td);
+        });
+        table.appendChild(tr);
+      });
+      result.appendChild(table);
+    }
+
+    function prepareDownloads(rows) {
+      const csv = Papa.unparse(rows);
+      const blobCsv = new Blob([csv], { type: 'text/csv' });
+      const urlCsv = URL.createObjectURL(blobCsv);
+      document.getElementById('downloadCsv').href = urlCsv;
+      document.getElementById('downloadCsv').download = 'missing_items.csv';
+      document.getElementById('downloadCsv').style.display = 'block';
+
+      const wb = XLSX.utils.book_new();
+      const ws = XLSX.utils.json_to_sheet(rows);
+      XLSX.utils.book_append_sheet(wb, ws, 'Missing');
+      const wbout = XLSX.write(wb, { bookType: 'xlsx', type: 'array' });
+      const blobXlsx = new Blob([wbout], { type: 'application/octet-stream' });
+      const urlXlsx = URL.createObjectURL(blobXlsx);
+      document.getElementById('downloadXlsx').href = urlXlsx;
+      document.getElementById('downloadXlsx').download = 'missing_items.xlsx';
+      document.getElementById('downloadXlsx').style.display = 'block';
+    }
+  </script>
+</body>
+</html>
